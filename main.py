@@ -1,11 +1,51 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from sqlmodel import Session, create_engine, SQLModel, Field, select
+from pydantic import BaseModel
+from user import User
+import logging
 
 app = FastAPI()
+
+logging.basicConfig(level=logging.INFO)
+
+sqlite_file_name = "database.db"
+sqlite_url = f"sqlite:///{sqlite_file_name}"
+
+connect_args = {"check_same_thread": False}
+engine = create_engine(sqlite_url, connect_args=connect_args)
+
+def create_db_and_tables():
+    SQLModel.metadata.create_all(engine)
+
+
+def get_session():
+    with Session(engine) as session:
+        yield session
+
+@app.post("/users_add/")
+def create_user(body: User, session = Depends(get_session)) -> User:
+    user = User(email=body.email, mdp=body.mdp)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+
 
 soldeCompte = 90000
 @app.get("/")
 def read_root():
     return {"message": "Bienvenue sur l'API BackFrontDevops"}
+
+@app.get("/users/")
+def read_users(session = Depends(get_session)):
+    users = session.exec(select(User)).all()
+    return users
+
 
 @app.post("/send_money")
 async def send_money(amount: float, compte: str):
