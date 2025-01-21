@@ -3,6 +3,7 @@ from sqlmodel import Session, create_engine, SQLModel, Field, select
 from pydantic import BaseModel
 from pathlib import Path
 from user import User
+from compte import Compte
 import logging
 
 app = FastAPI()
@@ -32,6 +33,14 @@ def create_user(body: User, session = Depends(get_session)) -> User:
     session.commit()
     session.refresh(user)
     return user
+
+@app.post("/account_add/")
+def create_compte(body: Compte, session = Depends(get_session)) -> Compte:
+    compte = Compte(nom=body.nom , iban=body.iban , userId=body.userId)
+    session.add(compte)
+    session.commit()
+    session.refresh(compte)
+    return compte
 
 
 @app.on_event("startup")
