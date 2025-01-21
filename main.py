@@ -1,3 +1,4 @@
+import hashlib
 from fastapi import FastAPI, Depends
 from sqlmodel import Session, create_engine, SQLModel, Field, select
 from pydantic import BaseModel
@@ -57,6 +58,27 @@ def read_root():
 def read_users(session = Depends(get_session)):
     users = session.exec(select(User)).all()
     return users
+
+@app.post("/register")
+async def register(email: str, mdp: str, session=Depends(get_session)):
+    query = select(User).where(User.email == email)
+    users = session.exec(query).all()
+    if users:
+        return {"message": "L'email est déjà utilisé"}
+    if not mdp:
+        return {"message": "Le mot de passe est requis"}
+    
+    mdp_hash = hashlib.sha256(mdp.encode()).hexdigest()
+    user = User(email=email, mdp=mdp_hash)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return {"message": "Utilisateur créé avec succès"}
+
+
+
+
+
 
 
 @app.post("/send_money")
