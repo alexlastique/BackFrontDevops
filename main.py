@@ -123,7 +123,6 @@ async def send_money(amount: float, compte_dest: str, iban: str, user=Depends(ge
     listIban = session.exec(query).all()
     if compte_dest not in listIban:
         return {"message": "Le compte cible est inaccessible"}
-    query = select(Compte).where(Compte.iban == iban)
     query = select(Compte.iban).where(Compte.userId == user["id"])
     listIban = session.exec(query).all()
     if iban not in listIban:
@@ -146,6 +145,20 @@ async def send_money(amount: float, compte_dest: str, iban: str, user=Depends(ge
     session.refresh(transaction)
 
     return {"message": f"Transfert de {amount} euros vers {compte_dest} réussi. Il vous reste {compte.solde}."}
+
+@app.post("/cancel_transaction")
+async def cancel_transaction(id: int, session=Depends(get_session), user=Depends(get_user)):
+    query = select(Transaction).where(Transaction.id == id, Transaction.state == "En attente")
+    transaction = session.exec(query).first()
+    if not transaction:
+        return {"message": "Transaction introuvable"}
+    # A modifier
+    if transaction.compte_sender_id!= user["id"]:
+        return {"message": "Vous ne pouvez pas annuler cette transaction"}
+    transaction.state = "Annulée"
+    session.commit()
+    session.refresh(transaction)
+    return {"message": "Transaction annulée avec succès"}
 
 @app.get("/comptes")
 async def get_comptes_by_user( user=Depends(get_user), session=Depends(get_session)):
@@ -185,7 +198,7 @@ async def get_transactions(compte_iban: str, session=Depends(get_session)):
     return transactions
 
 @app.get("/transaction/{compte_id}")
-async def get_transactions(compte_id: int, user=Depends(get_user), session=Depends(get_session)):
+async def get_transaction(compte_id: int, user=Depends(get_user), session=Depends(get_session)):
     query = select(Transaction).where(Transaction.id == compte_id)
     transactions = session.exec(query).first()
     if transactions == None:
