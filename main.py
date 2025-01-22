@@ -1,11 +1,12 @@
 import hashlib, jwt
 from fastapi import FastAPI, Depends, HTTPException
-from sqlmodel import Session, create_engine, SQLModel, Field, select
+from sqlmodel import Session, create_engine, SQLModel, Field, select, or_
 from pydantic import BaseModel
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pathlib import Path
 from user import User
 from compte import Compte
+from transaction import Transaction
 import logging
 
 app = FastAPI()
@@ -40,8 +41,8 @@ def get_session():
         yield session
 
 @app.post("/account_add/")
-def create_compte(body: Compte, session = Depends(get_session), userid=Depends(get_user)) -> Compte:
-    compte = Compte(nom=body.nom , iban=body.iban , userId=userid["id"])
+def create_compte(body: Compte, session = Depends(get_session), user=Depends(get_user)):
+    compte = Compte(nom=body.nom , iban=body.iban , userId=user["id"])
     session.add(compte)
     session.commit()
     session.refresh(compte)
@@ -111,6 +112,11 @@ async def deposit(amount: float, iban_dest : str, session=Depends(get_session), 
     session.commit()
     session.refresh(compte)
 
+    transaction = Transaction(compte_sender_id= 0, compte_receiver_id=iban_dest, montant=amount, state="Valide")
+    session.add(transaction)
+    session.commit()
+    session.refresh(transaction)
+
     return {"message": f"Dépot de {amount} euros réussi. Il vous reste {compte.solde}."}
 
 
@@ -137,6 +143,12 @@ async def send_money(amount: float, compte_dest: str, iban: str, user=Depends(ge
     compte.solde -= amount
     session.commit()
     session.refresh(compte)
+
+    transaction = Transaction(compte_sender_id=compte.iban, compte_receiver_id=compte_dest, montant=amount)
+    session.add(transaction)
+    session.commit()
+    session.refresh(transaction)
+
     return {"message": f"Transfert de {amount} euros vers {compte_dest} réussi. Il vous reste {compte.solde}."}
 
 @app.get("/compte/{iban}")
@@ -148,12 +160,7 @@ async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_sess
     query = select(Compte).where(Compte.iban == iban)
     compte = session.exec(query).first()
     transactions_on_going = []
-    transactions_historique = [
-        {"date": "2022-01-01", "montant": 5000, "type": "Débit"},
-        {"date": "2022-01-02", "montant": 2000, "type": "Débit"},
-        {"date": "2022-01-03", "montant": 300, "type": "Débit"},
-        {"date": "2022-01-04", "montant": 1000, "type": "Crédit"}
-    ]
+    transactions_historique = []
     
     return {
         "name": compte.nom,
@@ -164,3 +171,10 @@ async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_sess
         "transactions_on_going": transactions_on_going,
         "transactions_historique": transactions_historique
         }
+
+@app.get("/transactions/{compte_id}")
+async def get_transactions(compte_iban: str, session=Depends(get_session)):
+    query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(or_(Transaction.compte_sender_id == compte_iban, Transaction.compte_receiver_id == compte_iban)).order_by(Transaction.date.desc())
+    transactions = session.exec(query).all()
+    transactions = [tuple(row) for row in transactions]
+    return transactions

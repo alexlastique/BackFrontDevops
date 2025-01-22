@@ -7,4 +7,4 @@ class Compte(SQLModel, table=True):
     iban: str
     solde: float = Field(default=0.0)
     dateCreation: datetime = Field(default_factory=lambda: datetime.now())
-    userId: int
+    userId: int = Field(foreign_key="user.id")
