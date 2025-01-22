@@ -39,14 +39,6 @@ def get_session():
     with Session(engine) as session:
         yield session
 
-@app.post("/users_add/")
-def create_user(body: User, session = Depends(get_session)) -> User:
-    user = User(email=body.email, mdp=body.mdp)
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    return user
-
 @app.post("/account_add/")
 def create_compte(body: Compte, session = Depends(get_session), userid=Depends(get_user)) -> Compte:
     compte = Compte(nom=body.nom , iban=body.iban , userId=userid["id"])
@@ -102,6 +94,24 @@ def me(user=Depends(get_user), session=Depends(get_session)):
     compte = session.exec(query).all()
     return {"user": user, "Nombre de compte": len(compte)}
 
+@app.post("/deposit")
+async def deposit(amount: float, iban_dest : str, session=Depends(get_session), user=Depends(get_user)):
+    if amount<=0:
+        return {"message": "Le montant doit être supérieur à zéro"}
+    
+    query = select(Compte.iban).where(Compte.userId == user["id"])
+    listIban = session.exec(query).all()
+
+    if iban_dest not in listIban:
+        return {"message": "Compte introuvable"}
+    
+    query = select(Compte).where(Compte.iban == iban_dest)
+    compte = session.exec(query).first()
+    compte.solde += amount
+    session.commit()
+    session.refresh(compte)
+
+    return {"message": f"Dépot de {amount} euros réussi. Il vous reste {compte.solde}."}
 
 
 
