@@ -115,19 +115,29 @@ async def deposit(amount: float, iban_dest : str, session=Depends(get_session), 
 
 
 
-# @app.post("/send_money")
-# async def send_money(amount: float, compte: str):
-#     global soldeCompte
-#     if amount<=0:
-#         return {"message": "Le montant doit être supérieur à zéro"}
-#     if compte=="backfrontdevops":
-#         return {"message": "Vous ne pouvez pas transférer de l'argent à votre propre compte"}
-#     if amount>soldeCompte:
-#         return {"message": "Le montant transféré dépasse le solde du compte"}
-#     if compte not in ["test"]:
-#         return {"message": "Le compte cible est inaccessible"}
-#     soldeCompte -= amount
-#     return {"message": f"Transfert de {amount} euros vers {compte} réussi. Il vous reste {soldeCompte}."}
+@app.post("/send_money")
+async def send_money(amount: float, compte_dest: str, iban: str, user=Depends(get_user), session=Depends(get_session)):
+    query = select(Compte.iban)
+    listIban = session.exec(query).all()
+    if compte_dest not in listIban:
+        return {"message": "Le compte cible est inaccessible"}
+    query = select(Compte).where(Compte.iban == iban)
+    query = select(Compte.iban).where(Compte.userId == user["id"])
+    listIban = session.exec(query).all()
+    if iban not in listIban:
+        return {"message": "Ceci n'est pas votre compte"}
+    query = select(Compte).where(Compte.iban == iban)
+    compte = session.exec(query).first()
+    if amount<=0:
+        return {"message": "Le montant doit être supérieur à zéro"}
+    if compte_dest==compte.iban:
+        return {"message": "Vous ne pouvez pas transférer de l'argent à votre propre compte"}
+    if amount>compte.solde:
+        return {"message": "Le montant transféré dépasse le solde du compte"}
+    compte.solde -= amount
+    session.commit()
+    session.refresh(compte)
+    return {"message": f"Transfert de {amount} euros vers {compte_dest} réussi. Il vous reste {compte.solde}."}
 
 @app.get("/compte/{iban}")
 async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_session)):
