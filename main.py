@@ -1,7 +1,8 @@
-import hashlib
-from fastapi import FastAPI, Depends
+import hashlib, jwt
+from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import Session, create_engine, SQLModel, Field, select
 from pydantic import BaseModel
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pathlib import Path
 from user import User
 from compte import Compte
@@ -75,48 +76,70 @@ async def register(email: str, mdp: str, session=Depends(get_session)):
     session.refresh(user)
     return {"message": "Utilisateur créé avec succès"}
 
+secret_key = "very_secret_key"
+algorithm = "HS256"
+
+bearer_scheme = HTTPBearer()
+
+def get_user(authorization: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    return jwt.decode(authorization.credentials, secret_key, algorithms=[algorithm])
+
+def generate_token(user: User):
+    id = {"id": user.id}
+    return jwt.encode(id, secret_key, algorithm=algorithm)
+
+@app.post("/login")
+def login(user: User, session=Depends(get_session)):
+    query = select(User).where(User.email == user.email, User.mdp == hashlib.sha256(user.mdp.encode()).hexdigest())
+    user = session.exec(query).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Email ou mdp incorrect")
+
+    return {"token": generate_token(user)}
+
+@app.get("/me")
+def me(user=Depends(get_user)):
+    return user
 
 
 
 
+# @app.post("/send_money")
+# async def send_money(amount: float, compte: str):
+#     global soldeCompte
+#     if amount<=0:
+#         return {"message": "Le montant doit être supérieur à zéro"}
+#     if compte=="backfrontdevops":
+#         return {"message": "Vous ne pouvez pas transférer de l'argent à votre propre compte"}
+#     if amount>soldeCompte:
+#         return {"message": "Le montant transféré dépasse le solde du compte"}
+#     if compte not in ["test"]:
+#         return {"message": "Le compte cible est inaccessible"}
+#     soldeCompte -= amount
+#     return {"message": f"Transfert de {amount} euros vers {compte} réussi. Il vous reste {soldeCompte}."}
 
-
-@app.post("/send_money")
-async def send_money(amount: float, compte: str):
-    global soldeCompte
-    if amount<=0:
-        return {"message": "Le montant doit être supérieur à zéro"}
-    if compte=="backfrontdevops":
-        return {"message": "Vous ne pouvez pas transférer de l'argent à votre propre compte"}
-    if amount>soldeCompte:
-        return {"message": "Le montant transféré dépasse le solde du compte"}
-    if compte not in ["test"]:
-        return {"message": "Le compte cible est inaccessible"}
-    soldeCompte -= amount
-    return {"message": f"Transfert de {amount} euros vers {compte} réussi. Il vous reste {soldeCompte}."}
-
-@app.get("/compte/{id}")
-async def get_compte(id: str):
-    if id not in ["FR78945612307894561230"]:
-        return {"message": "Compte introuvable"}
-    global soldeCompte
-    name = "compte_principale"
-    date = "2022-01-01"
-    user = "John Doe"
-    transactions_on_going = []
-    transactions_historique = [
-        {"date": "2022-01-01", "montant": 5000, "type": "Débit"},
-        {"date": "2022-01-02", "montant": 2000, "type": "Débit"},
-        {"date": "2022-01-03", "montant": 300, "type": "Débit"},
-        {"date": "2022-01-04", "montant": 1000, "type": "Crédit"}
-    ]
+# @app.get("/compte/{id}")
+# async def get_compte(id: str):
+#     if id not in ["FR78945612307894561230"]:
+#         return {"message": "Compte introuvable"}
+#     global soldeCompte
+#     name = "compte_principale"
+#     date = "2022-01-01"
+#     user = "John Doe"
+#     transactions_on_going = []
+#     transactions_historique = [
+#         {"date": "2022-01-01", "montant": 5000, "type": "Débit"},
+#         {"date": "2022-01-02", "montant": 2000, "type": "Débit"},
+#         {"date": "2022-01-03", "montant": 300, "type": "Débit"},
+#         {"date": "2022-01-04", "montant": 1000, "type": "Crédit"}
+#     ]
     
-    return {
-        "name": name,
-        "date_creation": date,
-        "id": id,
-        "user": user,
-        "solde": soldeCompte,
-        "transactions_on_going": transactions_on_going,
-        "transactions_historique": transactions_historique
-        }
+#     return {
+#         "name": name,
+#         "date_creation": date,
+#         "id": id,
+#         "user": user,
+#         "solde": soldeCompte,
+#         "transactions_on_going": transactions_on_going,
+#         "transactions_historique": transactions_historique
+#         }
