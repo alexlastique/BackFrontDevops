@@ -48,11 +48,9 @@ def create_compte(body: Compte, session = Depends(get_session), user=Depends(get
     session.refresh(compte)
     return compte
 
-
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
-
 
 soldeCompte = 90000
 @app.get("/")
@@ -119,8 +117,6 @@ async def deposit(amount: float, iban_dest : str, session=Depends(get_session), 
 
     return {"message": f"Dépot de {amount} euros réussi. Il vous reste {compte.solde}."}
 
-
-
 @app.post("/send_money")
 async def send_money(amount: float, compte_dest: str, iban: str, user=Depends(get_user), session=Depends(get_session)):
     query = select(Compte.iban)
@@ -159,8 +155,10 @@ async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_sess
         return {"message": "Compte introuvable"}
     query = select(Compte).where(Compte.iban == iban)
     compte = session.exec(query).first()
-    transactions_on_going = []
-    transactions_historique = []
+    query = select(Transaction).where(Transaction.state == "En attente")
+    transactions_on_going = session.exec(query).all()
+    query = select(Transaction).where(Transaction.state != "En attente")
+    transactions_historique = session.exec(query).all()
     
     return {
         "name": compte.nom,
@@ -172,9 +170,22 @@ async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_sess
         "transactions_historique": transactions_historique
         }
 
-@app.get("/transactions/{compte_id}")
+@app.get("/transactions/{compte_iban}")
 async def get_transactions(compte_iban: str, session=Depends(get_session)):
     query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(or_(Transaction.compte_sender_id == compte_iban, Transaction.compte_receiver_id == compte_iban)).order_by(Transaction.date.desc())
     transactions = session.exec(query).all()
     transactions = [tuple(row) for row in transactions]
+    return transactions
+
+@app.get("/transaction/{compte_id}")
+async def get_transactions(compte_id: int, user=Depends(get_user), session=Depends(get_session)):
+    query = select(Transaction).where(Transaction.id == compte_id)
+    transactions = session.exec(query).first()
+    if transactions == None:
+        raise HTTPException(status_code=404, detail="Transaction introuvable")
+    
+    query = select(Compte.userId).where(or_(Compte.iban == transactions.compte_sender_id, Compte.iban == transactions.compte_receiver_id))
+    user_id = session.exec(query).all()
+    if user["id"] not in user_id:
+        raise HTTPException(status_code=403, detail="Accès refusé")
     return transactions
