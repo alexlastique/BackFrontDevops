@@ -147,6 +147,13 @@ async def send_money(amount: float, compte_dest: str, iban: str, user=Depends(ge
 
     return {"message": f"Transfert de {amount} euros vers {compte_dest} réussi. Il vous reste {compte.solde}."}
 
+@app.get("/comptes")
+async def get_comptes_by_user( user=Depends(get_user), session=Depends(get_session)):
+    query = select(Compte.nom, Compte.iban, Compte.solde, Compte.dateCreation).where(Compte.userId == user["id"]).order_by(Compte.dateCreation.desc())
+    comptes = session.exec(query).all()
+    comptes = [tuple(row) for row in comptes]
+    return comptes
+
 @app.get("/compte/{iban}")
 async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_session)):
     query = select(Compte.iban).where(Compte.userId == user["id"])
