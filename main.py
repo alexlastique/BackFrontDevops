@@ -23,6 +23,17 @@ def create_db_and_tables():
     if not database.is_file():
         SQLModel.metadata.create_all(engine)
 
+secret_key = "very_secret_key"
+algorithm = "HS256"
+
+bearer_scheme = HTTPBearer()
+
+def get_user(authorization: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    return jwt.decode(authorization.credentials, secret_key, algorithms=[algorithm])
+
+def generate_token(user: User):
+    id = {"id": user.id, "email": user.email}
+    return jwt.encode(id, secret_key, algorithm=algorithm)
 
 def get_session():
     with Session(engine) as session:
@@ -37,8 +48,8 @@ def create_user(body: User, session = Depends(get_session)) -> User:
     return user
 
 @app.post("/account_add/")
-def create_compte(body: Compte, session = Depends(get_session)) -> Compte:
-    compte = Compte(nom=body.nom , iban=body.iban , userId=body.userId)
+def create_compte(body: Compte, session = Depends(get_session), userid=Depends(get_user)) -> Compte:
+    compte = Compte(nom=body.nom , iban=body.iban , userId=userid["id"])
     session.add(compte)
     session.commit()
     session.refresh(compte)
@@ -76,18 +87,6 @@ async def register(email: str, mdp: str, session=Depends(get_session)):
     session.refresh(user)
     return {"message": "Utilisateur créé avec succès"}
 
-secret_key = "very_secret_key"
-algorithm = "HS256"
-
-bearer_scheme = HTTPBearer()
-
-def get_user(authorization: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
-    return jwt.decode(authorization.credentials, secret_key, algorithms=[algorithm])
-
-def generate_token(user: User):
-    id = {"id": user.id, "email": user.email}
-    return jwt.encode(id, secret_key, algorithm=algorithm)
-
 @app.post("/login")
 def login(user: User, session=Depends(get_session)):
     query = select(User).where(User.email == user.email, User.mdp == hashlib.sha256(user.mdp.encode()).hexdigest())
@@ -120,28 +119,28 @@ def me(user=Depends(get_user), session=Depends(get_session)):
 #     soldeCompte -= amount
 #     return {"message": f"Transfert de {amount} euros vers {compte} réussi. Il vous reste {soldeCompte}."}
 
-# @app.get("/compte/{id}")
-# async def get_compte(id: str):
-#     if id not in ["FR78945612307894561230"]:
-#         return {"message": "Compte introuvable"}
-#     global soldeCompte
-#     name = "compte_principale"
-#     date = "2022-01-01"
-#     user = "John Doe"
-#     transactions_on_going = []
-#     transactions_historique = [
-#         {"date": "2022-01-01", "montant": 5000, "type": "Débit"},
-#         {"date": "2022-01-02", "montant": 2000, "type": "Débit"},
-#         {"date": "2022-01-03", "montant": 300, "type": "Débit"},
-#         {"date": "2022-01-04", "montant": 1000, "type": "Crédit"}
-#     ]
+@app.get("/compte/{iban}")
+async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_session)):
+    query = select(Compte.iban).where(Compte.userId == user["id"])
+    listIban = session.exec(query).all()
+    if iban not in listIban:
+        return {"message": "Compte introuvable"}
+    query = select(Compte).where(Compte.iban == iban)
+    compte = session.exec(query).first()
+    transactions_on_going = []
+    transactions_historique = [
+        {"date": "2022-01-01", "montant": 5000, "type": "Débit"},
+        {"date": "2022-01-02", "montant": 2000, "type": "Débit"},
+        {"date": "2022-01-03", "montant": 300, "type": "Débit"},
+        {"date": "2022-01-04", "montant": 1000, "type": "Crédit"}
+    ]
     
-#     return {
-#         "name": name,
-#         "date_creation": date,
-#         "id": id,
-#         "user": user,
-#         "solde": soldeCompte,
-#         "transactions_on_going": transactions_on_going,
-#         "transactions_historique": transactions_historique
-#         }
+    return {
+        "name": compte.nom,
+        "date_creation": compte.dateCreation,
+        "iban": compte.iban,
+        "user": compte.userId,
+        "solde": compte.solde,
+        "transactions_on_going": transactions_on_going,
+        "transactions_historique": transactions_historique
+        }
