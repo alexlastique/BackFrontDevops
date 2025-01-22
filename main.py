@@ -85,7 +85,7 @@ def get_user(authorization: HTTPAuthorizationCredentials = Depends(bearer_scheme
     return jwt.decode(authorization.credentials, secret_key, algorithms=[algorithm])
 
 def generate_token(user: User):
-    id = {"id": user.id}
+    id = {"id": user.id, "email": user.email}
     return jwt.encode(id, secret_key, algorithm=algorithm)
 
 @app.post("/login")
@@ -98,8 +98,10 @@ def login(user: User, session=Depends(get_session)):
     return {"token": generate_token(user)}
 
 @app.get("/me")
-def me(user=Depends(get_user)):
-    return user
+def me(user=Depends(get_user), session=Depends(get_session)):
+    query = select(Compte).where(Compte.userId == user["id"])
+    compte = session.exec(query).all()
+    return {"user": user, "Nombre de compte": len(compte)}
 
 
 
