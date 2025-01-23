@@ -41,9 +41,23 @@ def get_session():
     with Session(engine) as session:
         yield session
 
+def first_compte(nom: str, userId : int, session = Depends(get_session)):
+    iban = f"FR{hashlib.sha256(str((datetime.now() + timedelta(days=365)).strftime('%Y%m%d%H%M%S') + nom).encode()).hexdigest()[:20]}"
+    compte = Compte(nom=nom, iban=iban, solde=100, userId=userId)
+    session.add(compte)
+    session.commit()
+    session.refresh(compte)
+    
+
+    transaction = Transaction(compte_sender_id= 0, compte_receiver_id=compte.iban, montant=100, state="Valide")
+    session.add(transaction)
+    session.commit()
+    session.refresh(transaction)
+
 @app.post("/account_add/")
-def create_compte(body: Compte, session = Depends(get_session), user=Depends(get_user)):
-    compte = Compte(nom=body.nom , iban=body.iban , userId=user["id"])
+def create_compte(body: str, session = Depends(get_session), user=Depends(get_user)):
+    iban = f"FR{hashlib.sha256(str((datetime.now() + timedelta(days=365)).strftime('%Y%m%d%H%M%S') + body).encode()).hexdigest()[:20]}"
+    compte = Compte(nom=body , iban=iban , userId=user["id"])
     session.add(compte)
     session.commit()
     session.refresh(compte)
@@ -77,7 +91,10 @@ async def register(email: str, mdp: str, session=Depends(get_session)):
     session.add(user)
     session.commit()
     session.refresh(user)
-    return {"message": "Utilisateur créé avec succès"}
+    
+    token = generate_token(user)
+    first_compte("ComptePrincipal", user.id, session)
+    return {"token": token}
 
 @app.post("/login")
 def login(user: User, session=Depends(get_session)):
