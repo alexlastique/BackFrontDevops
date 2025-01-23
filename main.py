@@ -9,6 +9,7 @@ from pathlib import Path
 from user import User
 from compte import Compte
 from transaction import Transaction
+from beneficiary import Beneficiary
 import logging
 
 app = FastAPI()
@@ -234,14 +235,14 @@ async def cancel_transaction(id: int, session=Depends(get_session), user=Depends
 
 @app.get("/comptes")
 async def get_comptes_by_user( user=Depends(get_user), session=Depends(get_session)):
-    query = select(Compte.nom, Compte.iban, Compte.solde, Compte.dateCreation).where(Compte.userId == user["id"]).order_by(Compte.dateCreation.desc())
+    query = select(Compte.nom, Compte.iban, Compte.solde, Compte.dateCreation).where(Compte.userId == user["id"], Compte.status == True).order_by(Compte.dateCreation.desc())
     comptes = session.exec(query).all()
     comptes = [tuple(row) for row in comptes]
     return comptes
 
 @app.get("/compte/{iban}")
 async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_session)):
-    query = select(Compte.iban).where(Compte.userId == user["id"])
+    query = select(Compte.iban).where(Compte.userId == user["id"], Compte.status == True)
     listIban = session.exec(query).all()
     if iban not in listIban:
         return {"message": "Compte introuvable"}
@@ -281,3 +282,29 @@ async def get_transaction(compte_id: int, user=Depends(get_user), session=Depend
     if user["id"] not in user_id:
         raise HTTPException(status_code=403, detail="Accès refusé")
     return transactions
+
+@app.post("/beneficiary_add/")
+def create_beneficiary(nom: str, iban: str, session = Depends(get_session), user=Depends(get_user)):
+    query = select(Compte.iban).where(Compte.userId == user["id"], Compte.status == True)
+    listIban = session.exec(query).all()
+    if iban in listIban:
+        return {"message": "Compte apartient à l'utilisateur"}
+    query = select(Beneficiary).where(Beneficiary.iban == iban, Beneficiary.iduser == user["id"])
+    beneficiary = session.exec(query).first()
+    if beneficiary:
+        return {"message": "Le bénéficiaire existe déjà"}
+    query = select(Compte).where(Compte.iban == iban)
+    compte = session.exec(query).first()
+    if compte is None:
+        return {"message": "Compte introuvable"}
+    beneficiary = Beneficiary(iban=iban, nom=nom, iduser=user["id"])
+    session.add(beneficiary)
+    session.commit()
+    session.refresh(beneficiary)
+    return beneficiary
+
+@app.get("/beneficiaries/")
+def read_beneficiaries(session = Depends(get_session), user=Depends(get_user)):
+    query = select(Beneficiary).where(Beneficiary.iduser == user["id"])
+    beneficiaries = session.exec(query).all()
+    return beneficiaries
