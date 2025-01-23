@@ -162,10 +162,10 @@ async def cancel_transaction(id: int, iban: str, session=Depends(get_session), u
 
     transaction = session.exec(query).first()
     if datetime.now().timestamp() - transaction.date.timestamp() > 60 :
-        return {"message": f"Vous ne pouvez annuler une transaction car dépassement du délai : cela a pris {datetime.now().timestamp() - transaction.date.timestamp()}"}
+        return {"message": "Vous ne pouvez annuler une transaction car le délai est dépassé"}
     
     if transaction is None:
-        return {"message": f"La transaction avec l'id {id} n est pas la mienne ou n est pas en attente"}
+        return {"message": f"L'anulation de la transaction {id} n'est pas possible"}
 
 
     query = select(Transaction.montant).where(Transaction.id == id)
