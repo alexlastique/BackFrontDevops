@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import hashlib, jwt
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import Session, create_engine, SQLModel, Field, select, or_, join
@@ -149,7 +150,6 @@ async def send_money(amount: float, compte_dest: str, iban: str, user=Depends(ge
 @app.post("/cancel_transaction")
 async def cancel_transaction(id: int, iban: str, session=Depends(get_session), user=Depends(get_user)):
 
-    # query = select(Transaction).where(Transaction.id == id, Transaction.state == "En attente")
     query = (
     select(Transaction)
     .join(Compte, Compte.iban == Transaction.compte_sender_id)
@@ -161,6 +161,9 @@ async def cancel_transaction(id: int, iban: str, session=Depends(get_session), u
     )
 
     transaction = session.exec(query).first()
+    if datetime.now().timestamp() - transaction.date.timestamp() > 60 :
+        return {"message": f"Vous ne pouvez annuler une transaction car dépassement du délai : cela a pris {datetime.now().timestamp() - transaction.date.timestamp()}"}
+    
     if transaction is None:
         return {"message": f"La transaction avec l'id {id} n est pas la mienne ou n est pas en attente"}
 
