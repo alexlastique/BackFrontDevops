@@ -1,6 +1,6 @@
 import hashlib, jwt
 from fastapi import FastAPI, Depends, HTTPException
-from sqlmodel import Session, create_engine, SQLModel, Field, select, or_
+from sqlmodel import Session, create_engine, SQLModel, Field, select, or_, join
 from pydantic import BaseModel
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pathlib import Path
@@ -147,14 +147,34 @@ async def send_money(amount: float, compte_dest: str, iban: str, user=Depends(ge
     return {"message": f"Transfert de {amount} euros vers {compte_dest} réussi. Il vous reste {compte.solde}."}
 
 @app.post("/cancel_transaction")
-async def cancel_transaction(id: int, session=Depends(get_session), user=Depends(get_user)):
-    query = select(Transaction).where(Transaction.id == id, Transaction.state == "En attente")
+async def cancel_transaction(id: int, iban: str, session=Depends(get_session), user=Depends(get_user)):
+
+    # query = select(Transaction).where(Transaction.id == id, Transaction.state == "En attente")
+    query = (
+    select(Transaction)
+    .join(Compte, Compte.iban == Transaction.compte_sender_id)
+    .where(
+        Transaction.id == id,
+        Transaction.state == "En attente",
+        Compte.userId == user["id"]
+        )
+    )
+
     transaction = session.exec(query).first()
-    if not transaction:
-        return {"message": "Transaction introuvable"}
-    # A modifier
-    if transaction.compte_sender_id!= user["id"]:
-        return {"message": "Vous ne pouvez pas annuler cette transaction"}
+    if transaction is None:
+        return {"message": f"La transaction avec l'id {id} n est pas la mienne ou n est pas en attente"}
+
+
+    query = select(Transaction.montant).where(Transaction.id == id)
+    amount_to_give_back = session.exec(query).first()
+
+    query = select(Compte).where(Compte.iban == iban)
+    compte = session.exec(query).first()
+    compte.solde += amount_to_give_back
+    session.commit()
+    session.refresh(compte)
+
+
     transaction.state = "Annulée"
     session.commit()
     session.refresh(transaction)
