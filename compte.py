@@ -8,3 +8,4 @@ class Compte(SQLModel, table=True):
     solde: float = Field(default=0.0)
     dateCreation: datetime = Field(default_factory=lambda: datetime.now())
     userId: int = Field(foreign_key="user.id")
+    status: bool = Field(default=True)

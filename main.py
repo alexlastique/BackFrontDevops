@@ -1,6 +1,7 @@
+from datetime import datetime, timedelta
 import hashlib, jwt
 from fastapi import FastAPI, Depends, HTTPException
-from sqlmodel import Session, create_engine, SQLModel, Field, select, or_
+from sqlmodel import Session, create_engine, SQLModel, Field, select, or_, join
 from pydantic import BaseModel
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pathlib import Path
@@ -40,13 +41,58 @@ def get_session():
     with Session(engine) as session:
         yield session
 
+def first_compte(nom: str, userId : int, session = Depends(get_session)):
+    iban = f"FR{hashlib.sha256(str((datetime.now() + timedelta(days=365)).strftime('%Y%m%d%H%M%S') + nom).encode()).hexdigest()[:20]}"
+    compte = Compte(nom=nom, iban=iban, solde=100, userId=userId)
+    session.add(compte)
+    session.commit()
+    session.refresh(compte)
+    
+
+    transaction = Transaction(compte_sender_id= 0, compte_receiver_id=compte.iban, montant=100, state="Valide")
+    session.add(transaction)
+    session.commit()
+    session.refresh(transaction)
+
 @app.post("/account_add/")
-def create_compte(body: Compte, session = Depends(get_session), user=Depends(get_user)):
-    compte = Compte(nom=body.nom , iban=body.iban , userId=user["id"])
+def create_compte(body: str, session = Depends(get_session), user=Depends(get_user)):
+    if body == "ComptePrincipal":
+        return {"message": "Nom de compte invalide"}
+    iban = f"FR{hashlib.sha256(str((datetime.now() + timedelta(days=365)).strftime('%Y%m%d%H%M%S') + body).encode()).hexdigest()[:20]}"
+    compte = Compte(nom=body , iban=iban , userId=user["id"])
     session.add(compte)
     session.commit()
     session.refresh(compte)
     return compte
+
+@app.post("/account_delete/")
+def delete_compte(iban: str, session = Depends(get_session), user=Depends(get_user)):
+    query = select(Compte).where(Compte.iban == iban, Compte.status == True)
+    compte = session.exec(query).first()
+    if compte.nom == "ComptePrincipal":
+        return {"Error": "Vous ne pouvez pas clôturer le compte principal"}
+    if not compte:
+        return {"Error": "Le compte n'existe pas"}
+    if compte.userId != user["id"]:
+        return {"Error": "Vous ne pouvez pas clôturer un compte qui ne vous appartient pas"}
+    
+    query = select(Transaction).where(or_(Transaction.compte_sender_id == iban,Transaction.compte_receiver_id == iban), Transaction.state == "En attente")
+    if not session.exec(query).all():
+        return {"Error": "Vous ne pouvez pas clôturer un compte qui a des transactions en cours"}
+
+    compte.status = False
+    session.commit()
+    session.refresh(compte)
+
+    solde = compte.solde
+    compte.solde = 0
+    query = select(Compte).where(Compte.nom == "ComptePrincipal", Compte.userId == user["id"])
+    comptePrincipal = session.exec(query).first()
+    comptePrincipal.solde += solde
+    session.commit()
+    session.refresh(comptePrincipal)
+
+    return {"message": "Compte clos avec succès"}
 
 @app.on_event("startup")
 def on_startup():
@@ -76,7 +122,10 @@ async def register(email: str, mdp: str, session=Depends(get_session)):
     session.add(user)
     session.commit()
     session.refresh(user)
-    return {"message": "Utilisateur créé avec succès"}
+    
+    token = generate_token(user)
+    first_compte("ComptePrincipal", user.id, session)
+    return {"token": token}
 
 @app.post("/login")
 def login(user: User, session=Depends(get_session)):
@@ -98,7 +147,7 @@ async def deposit(amount: float, iban_dest : str, session=Depends(get_session), 
     if amount<=0:
         return {"message": "Le montant doit être supérieur à zéro"}
     
-    query = select(Compte.iban).where(Compte.userId == user["id"])
+    query = select(Compte.iban).where(Compte.userId == user["id"], Compte.status == True)
     listIban = session.exec(query).all()
 
     if iban_dest not in listIban:
@@ -119,12 +168,11 @@ async def deposit(amount: float, iban_dest : str, session=Depends(get_session), 
 
 @app.post("/send_money")
 async def send_money(amount: float, compte_dest: str, iban: str, user=Depends(get_user), session=Depends(get_session)):
-    query = select(Compte.iban)
+    query = select(Compte.iban).where(Compte.status == True)
     listIban = session.exec(query).all()
     if compte_dest not in listIban:
         return {"message": "Le compte cible est inaccessible"}
-    query = select(Compte).where(Compte.iban == iban)
-    query = select(Compte.iban).where(Compte.userId == user["id"])
+    query = select(Compte.iban).where(Compte.userId == user["id"], Compte.status == True)
     listIban = session.exec(query).all()
     if iban not in listIban:
         return {"message": "Ceci n'est pas votre compte"}
@@ -146,6 +194,42 @@ async def send_money(amount: float, compte_dest: str, iban: str, user=Depends(ge
     session.refresh(transaction)
 
     return {"message": f"Transfert de {amount} euros vers {compte_dest} réussi. Il vous reste {compte.solde}."}
+
+@app.post("/cancel_transaction")
+async def cancel_transaction(id: int, session=Depends(get_session), user=Depends(get_user)):
+
+    query = (
+    select(Transaction)
+    .join(Compte, Compte.iban == Transaction.compte_sender_id)
+    .where(
+        Transaction.id == id,
+        Transaction.state == "En attente",
+        Compte.userId == user["id"]
+        )
+    )
+
+    transaction = session.exec(query).first()
+    if datetime.now().timestamp() - transaction.date.timestamp() > 60 :
+        return {"message": "Vous ne pouvez annuler une transaction car le délai est dépassé"}
+    
+    if transaction is None:
+        return {"message": f"L'anulation de la transaction {id} n'est pas possible"}
+
+
+    query = select(Transaction.montant).where(Transaction.id == id)
+    amount_to_give_back = session.exec(query).first()
+
+    query = select(Compte).where(Compte.iban == transaction.compte_sender_id)
+    compte = session.exec(query).first()
+    compte.solde += amount_to_give_back
+    session.commit()
+    session.refresh(compte)
+
+
+    transaction.state = "Annulée"
+    session.commit()
+    session.refresh(transaction)
+    return {"message": "Transaction annulée avec succès"}
 
 @app.get("/comptes")
 async def get_comptes_by_user( user=Depends(get_user), session=Depends(get_session)):
@@ -185,7 +269,7 @@ async def get_transactions(compte_iban: str, session=Depends(get_session)):
     return transactions
 
 @app.get("/transaction/{compte_id}")
-async def get_transactions(compte_id: int, user=Depends(get_user), session=Depends(get_session)):
+async def get_transaction(compte_id: int, user=Depends(get_user), session=Depends(get_session)):
     query = select(Transaction).where(Transaction.id == compte_id)
     transactions = session.exec(query).first()
     if transactions == None:
