@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta
-from datetime import datetime, timedelta
+import asyncio
+from datetime import datetime, time, timedelta
 import hashlib, jwt
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import Session, create_engine, SQLModel, Field, select, or_, join
@@ -56,6 +56,27 @@ def first_compte(nom: str, userId : int, session = Depends(get_session)):
     session.commit()
     session.refresh(transaction)
 
+async def validate_transfers(): 
+    while True:
+        with Session(engine) as session:
+            query = select(Transaction).where(Transaction.state == "En attente")
+            transactions = session.exec(query).all()
+
+            for t in transactions:
+                t.state = "Validée"
+                session.add(t)
+                session.commit()
+                session.refresh(t)
+
+                receiver_query = select(Compte).where(Compte.iban == t.compte_receiver_id)
+                receiver = session.exec(receiver_query).first()
+                if receiver:
+                    receiver.solde += t.montant
+                    session.add(receiver)
+                    session.commit()
+
+        await asyncio.sleep(300)
+
 @app.post("/account_add/")
 def create_compte(body: str, session = Depends(get_session), user=Depends(get_user)):
     if body == "ComptePrincipal":
@@ -99,8 +120,8 @@ def delete_compte(iban: str, session = Depends(get_session), user=Depends(get_us
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
+    asyncio.create_task(validate_transfers())
 
-soldeCompte = 90000
 @app.get("/")
 def read_root():
     return {"message": "Bienvenue sur l'API BackFrontDevops"}
