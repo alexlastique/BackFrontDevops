@@ -11,7 +11,12 @@ from compte import Compte
 from transaction import Transaction
 from beneficiary import Beneficiary
 import logging
-
+from register import Register
+from deposit import Deposit
+from send_money import SendMoney
+from cancel import Cancel
+from account import *
+from beneficiary_add import Beneficiary_add
 app = FastAPI()
 
 logging.basicConfig(level=logging.INFO)
@@ -59,11 +64,11 @@ def first_compte(nom: str, userId : int, session = Depends(get_session)):
 async def validate_transfers(): 
     while True:
         with Session(engine) as session:
-            query = select(Transaction).where(Transaction.state == "En attente")
+            query = select(Transaction).where(Transaction.state == "En attente", Transaction.date < datetime.now() - timedelta(minutes=5))
             transactions = session.exec(query).all()
 
             for t in transactions:
-                t.state = "Validée"
+                t.state = "Valide"
                 session.add(t)
                 session.commit()
                 session.refresh(t)
@@ -78,19 +83,19 @@ async def validate_transfers():
         await asyncio.sleep(300)
 
 @app.post("/account_add/")
-def create_compte(body: str, session = Depends(get_session), user=Depends(get_user)):
-    if body == "ComptePrincipal":
+def create_compte(account: Account_add, session = Depends(get_session), user=Depends(get_user)):
+    if account.name == "ComptePrincipal":
         return {"message": "Nom de compte invalide"}
-    iban = f"FR{hashlib.sha256(str((datetime.now() + timedelta(days=365)).strftime('%Y%m%d%H%M%S') + body).encode()).hexdigest()[:20]}"
-    compte = Compte(nom=body , iban=iban , userId=user["id"])
+    iban = f"FR{hashlib.sha256(str((datetime.now() + timedelta(days=365)).strftime('%Y%m%d%H%M%S') + account.name).encode()).hexdigest()[:20]}"
+    compte = Compte(nom=account.name , iban=iban , userId=user["id"])
     session.add(compte)
     session.commit()
     session.refresh(compte)
     return compte
 
-@app.post("/account_delete/")
-def delete_compte(iban: str, session = Depends(get_session), user=Depends(get_user)):
-    query = select(Compte).where(Compte.iban == iban, Compte.status == True)
+@app.post("/account_close/")
+def delete_compte(account: Account_delete, session = Depends(get_session), user=Depends(get_user)):
+    query = select(Compte).where(Compte.iban == account.iban, Compte.status == True)
     compte = session.exec(query).first()
     if compte.nom == "ComptePrincipal":
         return {"Error": "Vous ne pouvez pas clôturer le compte principal"}
@@ -98,9 +103,10 @@ def delete_compte(iban: str, session = Depends(get_session), user=Depends(get_us
         return {"Error": "Le compte n'existe pas"}
     if compte.userId != user["id"]:
         return {"Error": "Vous ne pouvez pas clôturer un compte qui ne vous appartient pas"}
-    
-    query = select(Transaction).where(or_(Transaction.compte_sender_id == iban,Transaction.compte_receiver_id == iban), Transaction.state == "En attente")
-    if not session.exec(query).all():
+
+    query = select(Transaction).where(or_(Transaction.compte_sender_id == account.iban,Transaction.compte_receiver_id == account.iban), Transaction.state == "En attente")
+    result = session.exec(query).all()
+    if not result and result != []:
         return {"Error": "Vous ne pouvez pas clôturer un compte qui a des transactions en cours"}
 
     compte.status = False
@@ -132,16 +138,16 @@ def read_users(session = Depends(get_session)):
     return users
 
 @app.post("/register")
-async def register(email: str, mdp: str, session=Depends(get_session)):
-    query = select(User).where(User.email == email)
+async def register(register: Register, session=Depends(get_session)):
+    query = select(User).where(User.email == register.email)
     users = session.exec(query).all()
     if users:
         return {"message": "L'email est déjà utilisé"}
-    if not mdp:
+    if not register.mdp:
         return {"message": "Le mot de passe est requis"}
     
-    mdp_hash = hashlib.sha256(mdp.encode()).hexdigest()
-    user = User(email=email, mdp=mdp_hash)
+    mdp_hash = hashlib.sha256(register.mdp.encode()).hexdigest()
+    user = User(email=register.email, mdp=mdp_hash)
     session.add(user)
     session.commit()
     session.refresh(user)
@@ -166,66 +172,66 @@ def me(user=Depends(get_user), session=Depends(get_session)):
     return {"user": user, "Nombre de compte": len(compte)}
 
 @app.post("/deposit")
-async def deposit(amount: float, iban_dest : str, session=Depends(get_session), user=Depends(get_user)):
-    if amount<=0:
+async def deposit(deposit: Deposit, session=Depends(get_session), user=Depends(get_user)):
+    if deposit.amount<=0:
         return {"message": "Le montant doit être supérieur à zéro"}
     
     query = select(Compte.iban).where(Compte.userId == user["id"], Compte.status == True)
     listIban = session.exec(query).all()
 
-    if iban_dest not in listIban:
+    if deposit.iban_dest not in listIban:
         return {"message": "Compte introuvable"}
     
-    query = select(Compte).where(Compte.iban == iban_dest)
+    query = select(Compte).where(Compte.iban == deposit.iban_dest)
     compte = session.exec(query).first()
-    compte.solde += amount
+    compte.solde += deposit.amount
     session.commit()
     session.refresh(compte)
 
-    transaction = Transaction(compte_sender_id= 0, compte_receiver_id=iban_dest, montant=amount, state="Valide")
+    transaction = Transaction(compte_sender_id= 0, compte_receiver_id=deposit.iban_dest, montant=deposit.amount, state="Valide")
     session.add(transaction)
     session.commit()
     session.refresh(transaction)
 
-    return {"message": f"Dépot de {amount} euros réussi. Il vous reste {compte.solde}."}
+    return {"message": f"Dépot de {deposit.amount} euros réussi. Il vous reste {compte.solde}."}
 
 @app.post("/send_money")
-async def send_money(amount: float, compte_dest: str, iban: str, user=Depends(get_user), session=Depends(get_session)):
+async def send_money(sendmoney: SendMoney, user=Depends(get_user), session=Depends(get_session)):
     query = select(Compte.iban).where(Compte.status == True)
     listIban = session.exec(query).all()
-    if compte_dest not in listIban:
+    if sendmoney.iban_dest not in listIban:
         return {"message": "Le compte cible est inaccessible"}
     query = select(Compte.iban).where(Compte.userId == user["id"], Compte.status == True)
     listIban = session.exec(query).all()
-    if iban not in listIban:
+    if sendmoney.iban_orig not in listIban:
         return {"message": "Ceci n'est pas votre compte"}
-    query = select(Compte).where(Compte.iban == iban)
+    query = select(Compte).where(Compte.iban == sendmoney.iban_orig)
     compte = session.exec(query).first()
-    if amount<=0:
+    if sendmoney.amount<=0:
         return {"message": "Le montant doit être supérieur à zéro"}
-    if compte_dest==compte.iban:
+    if sendmoney.iban_dest==compte.iban:
         return {"message": "Vous ne pouvez pas transférer de l'argent à votre propre compte"}
-    if amount>compte.solde:
+    if sendmoney.amount>compte.solde:
         return {"message": "Le montant transféré dépasse le solde du compte"}
-    compte.solde -= amount
+    compte.solde -= sendmoney.amount
     session.commit()
     session.refresh(compte)
 
-    transaction = Transaction(compte_sender_id=compte.iban, compte_receiver_id=compte_dest, montant=amount)
+    transaction = Transaction(compte_sender_id=compte.iban, compte_receiver_id=sendmoney.iban_dest, montant=sendmoney.amount)
     session.add(transaction)
     session.commit()
     session.refresh(transaction)
 
-    return {"message": f"Transfert de {amount} euros vers {compte_dest} réussi. Il vous reste {compte.solde}."}
+    return {"message": f"Transfert de {sendmoney.amount} euros vers {sendmoney.iban_dest} réussi. Il vous reste {compte.solde}."}
 
 @app.post("/cancel_transaction")
-async def cancel_transaction(id: int, session=Depends(get_session), user=Depends(get_user)):
+async def cancel_transaction(cancel: Cancel, session=Depends(get_session), user=Depends(get_user)):
 
     query = (
     select(Transaction)
     .join(Compte, Compte.iban == Transaction.compte_sender_id)
     .where(
-        Transaction.id == id,
+        Transaction.id == cancel.id,
         Transaction.state == "En attente",
         Compte.userId == user["id"]
         )
@@ -236,10 +242,10 @@ async def cancel_transaction(id: int, session=Depends(get_session), user=Depends
         return {"message": "Vous ne pouvez annuler une transaction car le délai est dépassé"}
     
     if transaction is None:
-        return {"message": f"L'anulation de la transaction {id} n'est pas possible"}
+        return {"message": f"L'anulation de la transaction {cancel.id} n'est pas possible"}
 
 
-    query = select(Transaction.montant).where(Transaction.id == id)
+    query = select(Transaction.montant).where(Transaction.id == cancel.id)
     amount_to_give_back = session.exec(query).first()
 
     query = select(Compte).where(Compte.iban == transaction.compte_sender_id)
@@ -249,7 +255,7 @@ async def cancel_transaction(id: int, session=Depends(get_session), user=Depends
     session.refresh(compte)
 
 
-    transaction.state = "Annulée"
+    transaction.state = "Annule"
     session.commit()
     session.refresh(transaction)
     return {"message": "Transaction annulée avec succès"}
@@ -305,20 +311,20 @@ async def get_transaction(compte_id: int, user=Depends(get_user), session=Depend
     return transactions
 
 @app.post("/beneficiary_add/")
-def create_beneficiary(nom: str, iban: str, session = Depends(get_session), user=Depends(get_user)):
+def create_beneficiary(beneficiary_add: Beneficiary_add, session = Depends(get_session), user=Depends(get_user)):
     query = select(Compte.iban).where(Compte.userId == user["id"], Compte.status == True)
     listIban = session.exec(query).all()
-    if iban in listIban:
+    if beneficiary_add.iban in listIban:
         return {"message": "Compte apartient à l'utilisateur"}
-    query = select(Beneficiary).where(Beneficiary.iban == iban, Beneficiary.iduser == user["id"])
+    query = select(Beneficiary).where(Beneficiary.iban == beneficiary_add.iban, Beneficiary.iduser == user["id"])
     beneficiary = session.exec(query).first()
     if beneficiary:
         return {"message": "Le bénéficiaire existe déjà"}
-    query = select(Compte).where(Compte.iban == iban)
+    query = select(Compte).where(Compte.iban == beneficiary_add.iban)
     compte = session.exec(query).first()
     if compte is None:
         return {"message": "Compte introuvable"}
-    beneficiary = Beneficiary(iban=iban, nom=nom, iduser=user["id"])
+    beneficiary = Beneficiary(iban=beneficiary_add.iban, nom=beneficiary_add.nom, iduser=user["id"])
     session.add(beneficiary)
     session.commit()
     session.refresh(beneficiary)
