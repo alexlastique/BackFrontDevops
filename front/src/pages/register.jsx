@@ -1,8 +1,7 @@
 import React from "react";
 import { useFormik } from "formik";
-import axiosInstance from "../axiosConfig";
-import { toast, Bounce, ToastContainer } from "react-toastify"; 
-import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer, Bounce } from "react-toastify"; 
+import { toastError, axiosPost } from "../function";
 
 export default function Register() {
     const formik = useFormik({
@@ -13,61 +12,27 @@ export default function Register() {
         },
         onSubmit: (values) => {
             if (!values.email || !values.password || !values.confirmPassword) {
-                toast.error("Tout les champs sont nécéssaire", {
-                    position: "top-right",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: false,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                    theme: "dark",
-                    transition: Bounce,
-                    });
+                toastError("Tout les champs sont nécéssaire");
                 return;
             }
             if (values.password !== values.confirmPassword) {
-                toast.error("Les mots ne passe ne corresponde pas", {
-                    position: "top-right",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: false,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                    theme: "dark",
-                    transition: Bounce,
-                    });
+                toastError("Les mots ne passe ne corresponde pas");
                 return;
             }
 
-            axiosInstance.post("/register", {
-                    "email": values.email,
-                    "mdp": values.password
-                })
-                .then(resp => { 
-                    console.log(resp);
-                    const token = resp.data.token;
-                    if(token) {
-                        localStorage.setItem("token", token);
-                        window.location.href = "/";
-                    }else {
-                        toast.error(resp.data.message, {
-                            position: "top-right",
-                            autoClose: 5000,
-                            hideProgressBar: false,
-                            closeOnClick: false,
-                            pauseOnHover: true,
-                            draggable: true,
-                            progress: undefined,
-                            theme: "dark",
-                            transition: Bounce,
-                            });
-                    }
-                })
-                .catch(error => {
-                    console.log(error);
-                })
+            let resp = axiosPost("/register", {"email": values.email, "mdp": values.password})
+            console.log(resp);
+            if (resp === undefined) {
+                toastError("Erreur lors de la création du compte");
+                return;
+            }
+            const token = resp.data.token;
+            if(token) {
+                localStorage.setItem("token", token);
+                window.location.href = "/";
+            }else {
+                toastError(resp.data.message);
+            }
                         
         }
     });
@@ -76,17 +41,17 @@ export default function Register() {
     return (
         <div>
             <ToastContainer
-            position="top-right"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick={false}
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="light"
-            transition={Bounce}
+                position="top-right"
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick={false}
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="light"
+                transition={Bounce}
             />
             <h1>Register</h1>
             <form onSubmit={formik.handleSubmit}>
