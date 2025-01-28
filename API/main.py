@@ -153,11 +153,16 @@ def read_users(session = Depends(get_session)):
 
 @app.post("/register")
 async def register(register: Register, session=Depends(get_session)):
+  try:
     query = select(User).where(User.email == register.email)
     users = session.exec(query).all()
+
     if users:
+        raise HTTPException(status_code=400, detail="L'email est déjà utilisé")
         return {"message": "L'email est déjà utilisé"}
+    
     if not register.mdp:
+        raise HTTPException(status_code=400, detail="Le mot de passe est requis")
         return {"message": "Le mot de passe est requis"}
     
     mdp_hash = hashlib.sha256(register.mdp.encode()).hexdigest()
@@ -169,6 +174,14 @@ async def register(register: Register, session=Depends(get_session)):
     token = generate_token(user)
     first_compte("ComptePrincipal", user.id, session)
     return {"token": token}
+  
+  except HTTPException as e:
+    raise e  # Renvoyer les erreurs connues (400)
+    
+  except Exception as e:
+    print(f"Erreur serveur lors de l'inscription : {e}")
+    session.rollback()
+    raise HTTPException(status_code=500, detail="Erreur interne du serveur")
 
 @app.post("/login")
 def login(user: User, session=Depends(get_session)):
