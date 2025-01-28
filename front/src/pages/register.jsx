@@ -12,58 +12,48 @@ export default function Register() {
     },
     onSubmit: async (values) => {
       if (!values.email || !values.password || !values.confirmPassword) {
-        toastError("Tout les champs sont nécéssaire");
+        toastError("Tous les champs sont nécessaires");
         return;
       }
       if (values.password !== values.confirmPassword) {
-        toastError("Les mots ne passe ne correspondent pas");
+        toastError("Les mots de passe ne correspondent pas");
         return;
       }
 
-      // 📌 1️⃣ Vérifier les données avant l'envoi
-      console.log("Envoi des données :", {
-        email: values.email,
-        mdp: values.password,
-      });
+      console.log("📡 Envoi des données :", values);
 
-      // 📌 2️⃣ Vérifier si axiosPost retourne bien une promesse
-      const testResp = axiosPost("/register", {
-        email: values.email,
-        mdp: values.password,
-      });
-      console.log("Type de retour axiosPost:", testResp);
-      if (!(testResp instanceof Promise)) {
-        toastError("axiosPost ne retourne pas une promesse");
-        return;
-      }
       try {
-        // let resp = await axiosPost("/register", {
-        //   email: values.email,
-        //   mdp: values.password,
-        // }
-        // );
-        let resp = await axiosPost("/register", {
+        console.log("📢 Début de la requête Axios...");
+
+        const resp = await axiosPost("/register", {
           email: values.email,
           mdp: values.password,
         });
 
-        // console.log(resp);
-        console.log("Réponse AxiosPost corrigée :", resp);
+        // 🛠 Ajout d'un log pour voir la structure de `resp`
+        console.log("✅ Réponse complète reçue :", resp);
 
-        if (!resp || !resp.data) {
-          toastError("Erreur lors de la création du compte");
+        if (!resp || typeof resp !== "object") {
+          toastError("Réponse invalide du serveur");
           return;
         }
 
-        const token = resp.data.token;
-        if (token) {
-          localStorage.setItem("token", token);
-          window.location.href = "/";
-        } else {
-          toastError(resp.data.message);
+        if (resp.message) {
+          // Le serveur a retourné une erreur
+          toastError(resp.message);
+          return;
         }
+
+        if (!resp.token) {
+          toastError("Erreur lors de la création du compte (token manquant)");
+          return;
+        }
+
+        // Si tout est bon, on sauvegarde le token
+        localStorage.setItem("token", resp.token);
+        window.location.href = "/";
       } catch (error) {
-        console.error("Erreur Axios:", error);
+        console.error("❌ Erreur Axios:", error);
         toastError("Erreur de connexion au serveur");
       }
     },
@@ -86,7 +76,7 @@ export default function Register() {
       />
       <h1>Register</h1>
       <form onSubmit={formik.handleSubmit}>
-        <label htmlFor="email">email</label>
+        <label htmlFor="email">Email</label>
         <input
           id="email"
           name="email"
@@ -94,7 +84,7 @@ export default function Register() {
           onChange={formik.handleChange}
           value={formik.values.email}
         />
-        <label htmlFor="password">password</label>
+        <label htmlFor="password">Password</label>
         <input
           id="password"
           name="password"
@@ -102,7 +92,7 @@ export default function Register() {
           onChange={formik.handleChange}
           value={formik.values.password}
         />
-        <label htmlFor="confirmPassword">confirm password</label>
+        <label htmlFor="confirmPassword">Confirm Password</label>
         <input
           id="confirmPassword"
           name="confirmPassword"

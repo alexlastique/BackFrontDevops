@@ -29,12 +29,19 @@ export function toastError(
 
 export async function axiosPost(link, params) {
   try {
+    console.log(
+      "📡 Envoi de la requête Axios à :",
+      link,
+      "avec params :",
+      params
+    );
     const response = await axiosInstance.post(link, params);
+    console.log("✅ Réponse reçue :", response);
     return response.data; // ✅ Retourne les données correctement
   } catch (error) {
     console.error("Erreur AxiosPost :", error);
     return error.response
-      ? error.response.data
-      : { message: "Erreur inconnue" };
+      ? { data: error.response.data, status: error.response.status }
+      : { data: { message: "Erreur inconnue" }, status: 500 };
   }
 }
