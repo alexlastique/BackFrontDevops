@@ -359,3 +359,14 @@ def read_beneficiaries(session = Depends(get_session), user=Depends(get_user)):
     query = select(Beneficiary).where(Beneficiary.iduser == user["id"])
     beneficiaries = session.exec(query).all()
     return beneficiaries
+
+@app.post("/change_passowrd/")
+def change_passowrd(old_password: str, new_password: str, session = Depends(get_session), userid=Depends(get_user)):
+    query = select(User).where(User.id == userid["id"])
+    user = session.exec(query).first()
+    if user.mdp != hashlib.sha256(old_password.encode()).hexdigest():
+        return {"message": "Mot de passe incorrect"}
+    user.mdp = hashlib.sha256(new_password.encode()).hexdigest()
+    session.commit()
+    session.refresh(user)
+    return {"message": "Mot de passe modifié avec succès"}
