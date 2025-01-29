@@ -285,11 +285,11 @@ async def cancel_transaction(cancel: Cancel, session=Depends(get_session), user=
     return {"message": "Transaction annulée avec succès"}
 
 @app.get("/comptes")
-async def get_comptes_by_user( user=Depends(get_user), session=Depends(get_session)):
-    query = select(Compte.nom, Compte.iban, Compte.solde, Compte.dateCreation).where(Compte.userId == user["id"], Compte.status == True).order_by(Compte.dateCreation.desc())
+async def get_comptes_by_user(user=Depends(get_user), session=Depends(get_session)):
+    query = select(Compte).where(Compte.userId == user["id"], Compte.status == True).order_by(Compte.dateCreation.desc())
     comptes = session.exec(query).all()
-    comptes = [tuple(row) for row in comptes]
-    return comptes
+    comptes_dict = [compte.dict() for compte in comptes]
+    return comptes_dict
 
 @app.get("/compte/{iban}")
 async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_session)):
