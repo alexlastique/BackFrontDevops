@@ -185,7 +185,7 @@ def login(user: User, session=Depends(get_session)):
     query = select(User).where(User.email == user.email, User.mdp == hashlib.sha256(user.mdp.encode()).hexdigest())
     user = session.exec(query).first()
     if not user:
-        raise HTTPException(status_code=404, detail="Email ou mdp incorrect")
+        return {"error": "Email ou mot de passe incorrect"}
 
     return {"token": generate_token(user)}
 
