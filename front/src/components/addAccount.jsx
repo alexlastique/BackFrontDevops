@@ -54,7 +54,7 @@ const AccountForm = ({ onSubmit, onClose }) => {
   });
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
         <h2 className="text-2xl font-bold mb-4">Ajouter un compte</h2>
         <form onSubmit={formik.handleSubmit} className="space-y-4">
@@ -102,8 +102,6 @@ export default function AddAccount() {
   // console.log("Valeurs du formulaire avant soumission :", formik.values);
 
   const handleSubmit = async (values) => {
-    console.log("Données envoyées :", values);
-
     try {
       const response = await axios.post(
         "http://127.0.0.1:8000/account_add/",
@@ -118,7 +116,6 @@ export default function AddAccount() {
         toast.error(response.data.message);
       } else {
         toast.success("Compte créé avec succès !");
-        console.log("Compte ajouté :", response.data);
       }
       setIsModalOpen(false);
     } catch (error) {
