@@ -51,7 +51,7 @@ export default function Register() {
 
         // Si tout est bon, on sauvegarde le token
         localStorage.setItem("token", resp.token);
-        window.location.href = "/";
+        // window.location.href = "/";
       } catch (error) {
         console.error("❌ Erreur Axios:", error);
         toastError("Erreur de connexion au serveur");
