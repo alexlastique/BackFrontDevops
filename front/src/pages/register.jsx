@@ -1,7 +1,7 @@
 import React from "react";
 import { useFormik } from "formik";
 import { ToastContainer, Bounce } from "react-toastify";
-import { toastError, axiosPost } from "../function";
+import { toastError, axiosPost, toastValidate } from "../function";
 
 export default function Register() {
   const formik = useFormik({
@@ -20,38 +20,28 @@ export default function Register() {
         return;
       }
 
-      console.log("📡 Envoi des données :", values);
 
       try {
-        console.log("📢 Début de la requête Axios...");
 
         const resp = await axiosPost("/register", {
           email: values.email,
           mdp: values.password,
         });
 
-        // 🛠 Ajout d'un log pour voir la structure de `resp`
-        console.log("✅ Réponse complète reçue :", resp);
+        console.log(resp);
 
         if (!resp || typeof resp !== "object") {
           toastError("Réponse invalide du serveur");
           return;
         }
 
-        if (resp.message) {
+        if (resp.error) {
           // Le serveur a retourné une erreur
-          toastError(resp.message);
+          toastError(resp.error);
           return;
         }
 
-        if (!resp.token) {
-          toastError("Erreur lors de la création du compte (token manquant)");
-          return;
-        }
-
-        // Si tout est bon, on sauvegarde le token
         localStorage.setItem("token", resp.token);
-        // window.location.href = "/";
       } catch (error) {
         console.error("❌ Erreur Axios:", error);
         toastError("Erreur de connexion au serveur");

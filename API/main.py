@@ -159,12 +159,10 @@ async def register(register: Register, session=Depends(get_session)):
     users = session.exec(query).all()
 
     if users:
-        raise HTTPException(status_code=400, detail="L'email est déjà utilisé")
-        return {"message": "L'email est déjà utilisé"}
+        return {"error": "L'email est déjà utilisé"}
     
     if not register.mdp:
-        raise HTTPException(status_code=400, detail="Le mot de passe est requis")
-        return {"message": "Le mot de passe est requis"}
+        return {"error": "Le mot de passe est requis"}
     
     mdp_hash = hashlib.sha256(register.mdp.encode()).hexdigest()
     user = User(email=register.email, mdp=mdp_hash)
@@ -176,8 +174,6 @@ async def register(register: Register, session=Depends(get_session)):
     first_compte("ComptePrincipal", user.id, session)
     return {"token": token}
   
-  except HTTPException as e:
-    raise e  # Renvoyer les erreurs connues (400)
     
   except Exception as e:
     print(f"Erreur serveur lors de l'inscription : {e}")

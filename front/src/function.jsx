@@ -27,17 +27,37 @@ export function toastError(
   });
 }
 
+export function toastValidate(
+  params,
+  position = "top-right",
+  autoClose = 5000,
+  hideProgressBar = false,
+  closeOnClick = false,
+  pauseOnHover = true,
+  draggable = true,
+  progress = undefined,
+  theme = "dark",
+  transition = Bounce
+) {
+  toast.success(params, {
+    position: position,
+    autoClose: autoClose,
+    hideProgressBar: hideProgressBar,
+    closeOnClick: closeOnClick,
+    pauseOnHover: pauseOnHover,
+    draggable: draggable,
+    progress: progress,
+    theme: theme,
+    transition: transition,
+  });
+}
+
+
+
 export async function axiosPost(link, params) {
   try {
-    console.log(
-      "📡 Envoi de la requête Axios à :",
-      link,
-      "avec params :",
-      params
-    );
     const response = await axiosInstance.post(link, params);
-    console.log("✅ Réponse reçue :", response);
-    return response.data; // ✅ Retourne les données correctement
+    return response.data;
   } catch (error) {
     console.error("Erreur AxiosPost :", error);
     return error.response
