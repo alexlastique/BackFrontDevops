@@ -48,7 +48,7 @@ const AccountForm = ({ onSubmit, onClose }) => {
   const formik = useFormik({
     initialValues: {
       name: "",
-      type: "courant",
+      type: "Courant",
     },
     onSubmit,
   });
@@ -71,8 +71,8 @@ const AccountForm = ({ onSubmit, onClose }) => {
             value={formik.values.type}
             onChange={formik.handleChange}
             options={[
-              { value: "courant", label: "Compte courant" },
-              { value: "epargne", label: "Compte épargne" },
+              { value: "Courant", label: "Compte courant" },
+              { value: "Epargne", label: "Compte épargne" },
             ]}
           />
           <div className="flex justify-between">
@@ -99,11 +99,15 @@ const AccountForm = ({ onSubmit, onClose }) => {
 export default function AddAccount() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // console.log("Valeurs du formulaire avant soumission :", formik.values);
+
   const handleSubmit = async (values) => {
+    console.log("Données envoyées :", values);
+
     try {
       const response = await axios.post(
         "http://127.0.0.1:8000/account_add/",
-        { name: values.name },
+        { name: values.name, accountType: values.type },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
