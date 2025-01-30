@@ -46,7 +46,7 @@ export default function AddAccount({ onAccountCreated }) {
       {isModalOpen && (
         <>
           {/* Overlay sombre avec une opacité réduite */}
-          <div className="fixed inset-0 bg-black bg-opacity-30 z-40"></div>
+          <div className="fixed inset-0 bg-gray-500 opacity-75"></div>
 
           {/* Contenu de la modale */}
           <div className="fixed inset-0 flex items-center justify-center z-50">
