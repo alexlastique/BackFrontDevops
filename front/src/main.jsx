@@ -8,6 +8,7 @@ import Login from './pages/login'
 import AddAccount from './components/addAccount';
 import UpdatePassword from './pages/user';
 import NavBar from './components/navbar';
+import Dashboard from './pages/dashboard'
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -19,6 +20,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/login" element={<Login />} />
         <Route path="/addAccount" element={<AddAccount />} />
         <Route path="/user" element={<UpdatePassword />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </Router>
   </StrictMode>,

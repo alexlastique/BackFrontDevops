@@ -340,6 +340,24 @@ async def get_transaction(compte_id: int, user=Depends(get_user), session=Depend
         raise HTTPException(status_code=403, detail="Accès refusé")
     return transactions
 
+@app.post("/transaction_all/")
+async def get_transaction(user=Depends(get_user), session=Depends(get_session)):
+    query = (
+        select(Transaction)
+        .join(Compte, or_(Compte.iban == Transaction.compte_sender_id, Compte.iban == Transaction.compte_receiver_id))
+        .where(Compte.userId == user["id"], Compte.status == True, Transaction.date > datetime.now() - timedelta(hours=24))
+    )
+    transactions = session.exec(query).all()
+    response = []
+    for transaction in transactions:
+        query = select(Compte).where(Compte.userId == user["id"], Compte.status == True, or_(Compte.iban == transaction.compte_sender_id, Compte.iban == transaction.compte_receiver_id))
+        resp = session.exec(query).first()
+        response.append({"nom": resp.nom, "iban": resp.iban, "transactions": transaction})
+    
+
+    return response
+
+
 @app.post("/beneficiary_add/")
 def create_beneficiary(beneficiary_add: Beneficiary_add, session = Depends(get_session), user=Depends(get_user)):
     query = select(Compte.iban).where(Compte.userId == user["id"], Compte.status == True)
