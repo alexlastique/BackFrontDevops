@@ -1,9 +1,8 @@
 import React from "react";
 import { useFormik } from "formik";
 import { ToastContainer } from "react-toastify";
-import { toastError, axiosPost, toastValidate } from "../function";
+import { toastError, axiosPost, toastValidate } from "../utils/function";
 import axiosInstance from "../axiosConfig";
-import * as yup from "yup";
 
 export default function UpdatePassword() {
   const formik = useFormik({
@@ -12,18 +11,20 @@ export default function UpdatePassword() {
       newPassword: "",
       confirmPassword: "",
     },
-    validationSchema: yup.object({
-      currentPassword: yup.string().required("Mot de passe actuel requis"),
-      newPassword: yup
-        .string()
-        .min(8, "Le mot de passe doit contenir au moins 8 caractères")
-        .required("Nouveau mot de passe requis"),
-      confirmPassword: yup
-        .string()
-        .oneOf([yup.ref("newPassword"), null], "Les mots de passe doivent correspondre")
-        .required("Confirmation du mot de passe requise"),
-    }),
     onSubmit: async (values) => {
+      if (!values.email || !values.password || !values.confirmPassword) {
+        toastError("Tous les champs sont nécessaires");
+        return;
+      }
+      const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
+      if (!passwordRegex.test(values.password)) {
+        toastError("Le mot de passe doit contenir au moins 8 caractères, une lettre, un chiffre et un caractère spécial");
+        return;
+      }
+      if (values.password !== values.confirmPassword) {
+        toastError("Les mots de passe ne correspondent pas");
+        return;
+      }
       try {
         axiosInstance.defaults.headers.common["Authorization"] ="Bearer " + localStorage.getItem("token");
         const resp = await axiosPost("/change_password", {

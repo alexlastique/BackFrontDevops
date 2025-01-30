@@ -1,7 +1,7 @@
 import React from "react";
 import { useFormik } from "formik";
 import { ToastContainer, Bounce } from "react-toastify";
-import { toastError, axiosPost, toastValidate } from "../function";
+import { toastError, axiosPost, toastValidate } from "../utils/function";
 
 export default function Register() {
   const formik = useFormik({
