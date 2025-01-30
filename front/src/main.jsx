@@ -4,7 +4,8 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
 import './index.css'
 import Register from './pages/register'
 import Accounts from './pages/accounts'
-import AddAccount from "./components/addAccount";
+import Login from './pages/login'
+import AddAccount from './components/addAccount';
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -12,7 +13,8 @@ createRoot(document.getElementById("root")).render(
       <Routes>
         <Route path="/" element={<Register />} />
         <Route path="/account" element={<Accounts />} />
-        <Route path="/AddAccount" element={<AddAccount />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/addAccount" element={<AddAccount />} />
       </Routes>
     </Router>
   </StrictMode>,
