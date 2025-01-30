@@ -324,7 +324,14 @@ async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_sess
 async def get_transactions(compte_iban: str, session=Depends(get_session)):
     query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(or_(Transaction.compte_sender_id == compte_iban, Transaction.compte_receiver_id == compte_iban)).order_by(Transaction.date.desc())
     transactions = session.exec(query).all()
-    transactions = [tuple(row) for row in transactions]
+    transactions = [{
+        "compte_sender_id": transaction.compte_sender_id,
+        "compte_receiver_id": transaction.compte_receiver_id,
+        "montant": transaction.montant,
+        "date": transaction.date,
+        "state": transaction.state
+    } for transaction in transactions]
+    
     return transactions
 
 @app.get("/transaction/{compte_id}")
