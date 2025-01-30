@@ -376,6 +376,59 @@ async def get_transactions_filter(compte_iban: str, param: str, session=Depends(
 
     return transactions
 
+@app.get("/transactionsUserFilterLabel/{param}/{label}")
+async def get_transactions_user_filter_label(param: str, label: str, user=Depends(get_user), session=Depends(get_session)):
+    filters = []
+    comptes = [c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()]
+    
+    if param == "Dépenses":
+        filters.append(Transaction.compte_sender_id.in_(comptes))
+    elif param == "Revenue":
+        filters.append(Transaction.compte_receiver_id.in_(comptes))
+    else:
+        filters.append(or_(Transaction.compte_sender_id.in_(comptes), Transaction.compte_receiver_id.in_(comptes)))
+    
+    if label:
+        # filters.append(or_(Transaction.label == label, Transaction.montant == label))
+        filters.append(Transaction.montant == label)
+    
+    query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(*filters).order_by(Transaction.date.desc())
+    transactions = session.exec(query).all()
+    
+    return [{
+        "compte_sender_id": transaction.compte_sender_id,
+        "compte_receiver_id": transaction.compte_receiver_id,
+        "montant": transaction.montant,
+        "date": transaction.date,
+        "state": transaction.state
+    } for transaction in transactions]
+
+@app.get("/transactionsFilterLabel/{compte_iban}/{param}/{label}")
+async def get_transactions_filter_label(compte_iban: str, param: str, label: str, session=Depends(get_session)):
+    filters = []
+    
+    if param == "Dépenses":
+        filters.append(Transaction.compte_sender_id == compte_iban)
+    elif param == "Revenue":
+        filters.append(Transaction.compte_receiver_id == compte_iban)
+    else:
+        filters.append(or_(Transaction.compte_sender_id == compte_iban, Transaction.compte_receiver_id == compte_iban))
+    
+    if label:
+        # filters.append(or_(Transaction.label == label, Transaction.montant == label))
+        filters.append(Transaction.montant == label)
+    
+    query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(*filters).order_by(Transaction.date.desc())
+    transactions = session.exec(query).all()
+    
+    return [{
+        "compte_sender_id": transaction.compte_sender_id,
+        "compte_receiver_id": transaction.compte_receiver_id,
+        "montant": transaction.montant,
+        "date": transaction.date,
+        "state": transaction.state
+    } for transaction in transactions]
+
 @app.get("/transactions/{compte_iban}")
 async def get_transactions(compte_iban: str, session=Depends(get_session)):
     query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(or_(Transaction.compte_sender_id == compte_iban, Transaction.compte_receiver_id == compte_iban)).order_by(Transaction.date.desc())
