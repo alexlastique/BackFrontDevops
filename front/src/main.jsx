@@ -1,10 +1,11 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import Register from './pages/register'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import Register from "./pages/register";
+import AddAccount from "./components/addAccount";
 
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <Register />
-  </StrictMode>,
-)
+    <AddAccount />
+  </StrictMode>
+);
