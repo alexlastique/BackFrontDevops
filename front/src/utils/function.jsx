@@ -1,6 +1,6 @@
 import { toast, Bounce } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import axiosInstance from "./axiosConfig";
+import axiosInstance from "../axiosConfig";
 
 export function toastError(
   params,
@@ -57,6 +57,18 @@ export function toastValidate(
 export async function axiosPost(link, params) {
   try {
     const response = await axiosInstance.post(link, params);
+    return response.data;
+  } catch (error) {
+    console.error("Erreur AxiosPost :", error);
+    return error.response
+      ? { data: error.response.data, status: error.response.status }
+      : { data: { message: "Erreur inconnue" }, status: 500 };
+  }
+}
+
+export async function axiosGet(link) {
+  try {
+    const response = await axiosInstance.get(link);
     return response.data;
   } catch (error) {
     console.error("Erreur AxiosPost :", error);

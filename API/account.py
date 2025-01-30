@@ -6,3 +6,4 @@ class Account_add(BaseModel):
 
 class Account_delete(BaseModel):
     iban: str
+    password: str
