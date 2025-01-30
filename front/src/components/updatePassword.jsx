@@ -41,7 +41,7 @@ export default function UpdatePassword() {
             window.location.href = "/";
           }, 5000);
         }
-        
+
       } catch (error) {
         console.error("❌ Erreur Axios:", error);
         toastError(error.response?.data?.detail || "Erreur inconnue");
@@ -50,58 +50,47 @@ export default function UpdatePassword() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
-      <div className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4">Changer de mot de passe</h3>
-        <form onSubmit={formik.handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
-              Mot de passe actuel
-            </label>
-            <input
-              id="currentPassword"
-              name="currentPassword"
-              type="password"
-              onChange={formik.handleChange}
-              value={formik.values.currentPassword}
-              className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-              Nouveau mot de passe
-            </label>
-            <input
-              id="newPassword"
-              name="newPassword"
-              type="password"
-              onChange={formik.handleChange}
-              value={formik.values.newPassword}
-              className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-              Confirmez le mot de passe
-            </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              onChange={formik.handleChange}
-              value={formik.values.confirmPassword}
-              className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition"
-          >
-            Modifier
-          </button>
-        </form>
-      </div>
+    <div className="w-full max-w-md bg-white p-6 rounded-lg shadow-md">
       <ToastContainer />
+      <h2 className="text-2xl font-bold mb-4">Mettre à jour le mot de passe</h2>
+      <form onSubmit={formik.handleSubmit}>
+        <div className="mb-4">
+          <label htmlFor="currentPassword" className="block text-gray-700">Mot de passe actuel</label>
+          <input
+            id="currentPassword"
+            name="currentPassword"
+            type="password"
+            onChange={formik.handleChange}
+            value={formik.values.currentPassword}
+            className="w-full px-3 py-2 border rounded"
+          />
+        </div>
+        <div className="mb-4">
+          <label htmlFor="newPassword" className="block text-gray-700">Nouveau mot de passe</label>
+          <input
+            id="newPassword"
+            name="newPassword"
+            type="password"
+            onChange={formik.handleChange}
+            value={formik.values.newPassword}
+            className="w-full px-3 py-2 border rounded"
+          />
+        </div>
+        <div className="mb-4">
+          <label htmlFor="confirmPassword" className="block text-gray-700">Confirmer le mot de passe</label>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            onChange={formik.handleChange}
+            value={formik.values.confirmPassword}
+            className="w-full px-3 py-2 border rounded"
+          />
+        </div>
+        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          Mettre à jour
+        </button>
+      </form>
     </div>
   );
 }
