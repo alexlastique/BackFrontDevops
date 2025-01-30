@@ -112,12 +112,18 @@ def create_compte(account: Account_add, session = Depends(get_session), user=Dep
 def delete_compte(account: Account_delete, session = Depends(get_session), user=Depends(get_user)):
     query = select(Compte).where(Compte.iban == account.iban, Compte.status == True)
     compte = session.exec(query).first()
+
+    query = select(User.mdp).where( User.id == user["id"])
+    mdp = session.exec(query).first()
+
     if compte.nom == "ComptePrincipal":
         return {"Error": "Vous ne pouvez pas clôturer le compte principal"}
     if not compte:
         return {"Error": "Le compte n'existe pas"}
     if compte.userId != user["id"]:
         return {"Error": "Vous ne pouvez pas clôturer un compte qui ne vous appartient pas"}
+    if hashlib.sha256(account.password.encode()).hexdigest() != mdp:
+        return {"Error": "Mot de passe incorrect"}
 
     query = select(Transaction).where(or_(Transaction.compte_sender_id == account.iban,Transaction.compte_receiver_id == account.iban), Transaction.state == "En attente")
     result = session.exec(query).all()
@@ -285,11 +291,11 @@ async def cancel_transaction(cancel: Cancel, session=Depends(get_session), user=
     return {"message": "Transaction annulée avec succès"}
 
 @app.get("/comptes")
-async def get_comptes_by_user( user=Depends(get_user), session=Depends(get_session)):
-    query = select(Compte.nom, Compte.iban, Compte.solde, Compte.dateCreation).where(Compte.userId == user["id"], Compte.status == True).order_by(Compte.dateCreation.desc())
+async def get_comptes_by_user(user=Depends(get_user), session=Depends(get_session)):
+    query = select(Compte).where(Compte.userId == user["id"], Compte.status == True).order_by(Compte.dateCreation.desc())
     comptes = session.exec(query).all()
-    comptes = [tuple(row) for row in comptes]
-    return comptes
+    comptes_dict = [compte.dict() for compte in comptes]
+    return comptes_dict
 
 @app.get("/compte/{iban}")
 async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_session)):
