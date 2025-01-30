@@ -72,19 +72,11 @@ export default function Accounts() {
       </div>
       <div className="flex flex-wrap gap-4">
         {accounts.map((account) => (
-          <Account
-            key={account.id}
-            account={account}
-            className="w-1/3"
-            onSendMessage={deleteAccountPopUp}
-          />
+          <Account key={account.id} account={account} className="w-1/3" onSendMessage={ deleteAccountPopUp } />
         ))}
       </div>
       {deletePopUp && (
-        <DeleteAccount
-          iban={deleteAccountIban}
-          onCancel={cancelDeleteAccount}
-        />
+        <DeleteAccount iban={ deleteAccountIban } onCancel={ cancelDeleteAccount } />
       )}
     </>
   );
