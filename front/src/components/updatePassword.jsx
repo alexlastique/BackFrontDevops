@@ -12,24 +12,39 @@ export default function UpdatePassword() {
       confirmPassword: "",
     },
     onSubmit: async (values) => {
-      if (!values.currentPassword || !values.newPassword || !values.confirmPassword) {
+      if (!values.email || !values.password || !values.confirmPassword) {
         toastError("Tous les champs sont nécessaires");
         return;
       }
       const passwordRegex = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,}$/;
-      if (!passwordRegex.test(values.newPassword)) {
+      if (!passwordRegex.test(values.password)) {
         toastError("Le mot de passe doit contenir au moins 8 caractères, une lettre, un chiffre et un caractère spécial");
         return;
       }
-      if (values.newPassword !== values.confirmPassword) {
+      if (values.password !== values.confirmPassword) {
         toastError("Les mots de passe ne correspondent pas");
         return;
       }
       try {
-        await axiosPost("/update-password", values);
-        toastValidate("Mot de passe mis à jour avec succès");
+        axiosInstance.defaults.headers.common["Authorization"] ="Bearer " + localStorage.getItem("token");
+        const resp = await axiosPost("/change_password", {
+          currentPassword: values.currentPassword,
+          new_password: values.newPassword,
+        });
+        console.log(resp);
+        if (resp.message == "Mot de passe incorrect") {
+          toastError("Mot de passe incorrect");
+        } else {
+          toastValidate("Mot de passe mis à jour avec succès !");
+          setTimeout(() => {
+            localStorage.removeItem("token");
+            window.location.href = "/";
+          }, 5000);
+        }
+
       } catch (error) {
-        toastError("Erreur lors de la mise à jour du mot de passe");
+        console.error("❌ Erreur Axios:", error);
+        toastError(error.response?.data?.detail || "Erreur inconnue");
       }
     },
   });
