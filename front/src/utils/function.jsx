@@ -43,3 +43,15 @@ export async function axiosPost(link, params) {
       : { data: { message: "Erreur inconnue" }, status: 500 };
   }
 }
+
+export async function axiosGet(link) {
+  try {
+    const response = await axiosInstance.get(link);
+    return response.data;
+  } catch (error) {
+    console.error("Erreur AxiosPost :", error);
+    return error.response
+      ? { data: error.response.data, status: error.response.status }
+      : { data: { message: "Erreur inconnue" }, status: 500 };
+  }
+}

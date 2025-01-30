@@ -9,3 +9,4 @@ class Compte(SQLModel, table=True):
     dateCreation: datetime = Field(default_factory=lambda: datetime.now())
     userId: int = Field(foreign_key="user.id")
     status: bool = Field(default=True)
+    accountType: str = Field(default="Courant")
