@@ -45,7 +45,6 @@ export async function axiosPost(link, params) {
 }
 
 export async function axiosGet(link) {
-  console.log("axiosGet", link);
   try {
     const response = await axiosInstance.get(link);
     return response.data;

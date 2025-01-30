@@ -23,7 +23,6 @@ export default function Login() {
                     mdp: values.password,
                 });
 
-                console.log(resp);
 
                 if (!resp || typeof resp !== "object") {
                     toastError("Réponse invalide du serveur");
