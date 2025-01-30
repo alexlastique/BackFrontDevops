@@ -1,8 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { toastError } from "../utils/function";
+import { toastError, axiosPost, toastValidate } from "../utils/function";
 
-export default function Account({ account }) {
+export default function Account({ account, onSendMessage }) {
     const navigate = useNavigate();
 
     const goToTransaction = () => {
@@ -11,16 +11,16 @@ export default function Account({ account }) {
 
 
     return (
-        <div className="p-4 border rounded-lg shadow-md bg-white max-w-md w-1/3 cursor-pointer" onClick={ goToTransaction }>
+        <div className="p-4 border rounded-lg shadow-md bg-white max-w-md w-1/3">
             <div className="flex justify-between items-center mb-2">
-                <p className="text-lg font-semibold">{account.nom}</p>
-                <svg
+                <p className="text-lg font-semibold cursor-pointer" onClick={ goToTransaction }>{account.nom}</p>
+                <svg onClick={ ()=> onSendMessage(account.iban) }
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
                     stroke="currentColor"
-                    className="w-6 h-6 text-gray-500"
+                    className="w-6 h-6 text-gray-500 cursor-pointer"
                 >
                     <path
                         strokeLinecap="round"

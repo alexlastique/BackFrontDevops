@@ -3,30 +3,38 @@ import { ToastContainer, Bounce } from "react-toastify";
 import { toastError, axiosGet } from "../utils/function";
 import axiosInstance from "../axiosConfig";
 import Account from "../components/account";
+import DeleteAccount from "../components/accountDelete";
 
-/**
- * Accounts component fetches and displays a list of user accounts along with their total balance.
- * 
- * @returns {JSX.Element} A React component that renders the accounts and their total balance.
- */
 export default function Accounts() {
     const [accounts, setAccounts] = useState([]);
     const [total, setTotal] = useState(0);
+    const [deletePopUp, setDeletePopUp] = useState(false);
+    const [deleteAccountIban, setDeleteAccountIban] = useState("");
+
+    const fetchAccounts = async () => {
+        try {
+            axiosInstance.defaults.headers.common['Authorization'] = "bearer " + localStorage.getItem("token");
+            const resp = await axiosGet("/comptes");
+            setAccounts(resp);
+        } catch (error) {
+            console.error("Error fetching accounts:", error);
+            toastError("Failed to fetch accounts");
+        }
+    };
 
     useEffect(() => {
-        const fetchAccounts = async () => {
-            try {
-                axiosInstance.defaults.headers.common['Authorization'] = "bearer " + localStorage.getItem("token");
-                const resp = await axiosGet("/comptes");
-                setAccounts(resp);
-            } catch (error) {
-                console.error("Error fetching accounts:", error);
-                toastError("Failed to fetch accounts");
-            }
-        };
-
         fetchAccounts();
     }, []);
+
+    const deleteAccountPopUp = (accountIban) => {
+        setDeletePopUp(true);
+        setDeleteAccountIban(accountIban);
+    }
+    
+    const cancelDeleteAccount = () => {
+        setDeletePopUp(false);
+        fetchAccounts();
+    }
 
     useEffect(() => {
         let sum = 0;
@@ -64,9 +72,12 @@ export default function Accounts() {
             </div>
             <div className="flex flex-wrap gap-4">
                 {accounts.map((account) => (
-                    <Account key={account.id} account={account} className="w-1/3" />
+                    <Account key={account.id} account={account} className="w-1/3" onSendMessage={ deleteAccountPopUp } />
                 ))}
             </div>
+            {deletePopUp && (
+                <DeleteAccount iban={ deleteAccountIban }  onCancel={ cancelDeleteAccount } />
+            )}
         </>
     );
 }

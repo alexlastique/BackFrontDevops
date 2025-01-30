@@ -112,12 +112,18 @@ def create_compte(account: Account_add, session = Depends(get_session), user=Dep
 def delete_compte(account: Account_delete, session = Depends(get_session), user=Depends(get_user)):
     query = select(Compte).where(Compte.iban == account.iban, Compte.status == True)
     compte = session.exec(query).first()
+
+    query = select(User.mdp).where( User.id == user["id"])
+    mdp = session.exec(query).first()
+
     if compte.nom == "ComptePrincipal":
         return {"Error": "Vous ne pouvez pas clôturer le compte principal"}
     if not compte:
         return {"Error": "Le compte n'existe pas"}
     if compte.userId != user["id"]:
         return {"Error": "Vous ne pouvez pas clôturer un compte qui ne vous appartient pas"}
+    if hashlib.sha256(account.password.encode()).hexdigest() != mdp:
+        return {"Error": "Mot de passe incorrect"}
 
     query = select(Transaction).where(or_(Transaction.compte_sender_id == account.iban,Transaction.compte_receiver_id == account.iban), Transaction.state == "En attente")
     result = session.exec(query).all()
