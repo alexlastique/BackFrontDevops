@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import Button from "./Button";
 import AccountForm from "./AccountForm";
 
-export default function AddAccount() {
+export default function AddAccount({ onAccountCreated }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleSubmit = async (values) => {
@@ -24,6 +24,10 @@ export default function AddAccount() {
         toast.success("Compte créé avec succès !");
       }
       setIsModalOpen(false);
+
+      if (onAccountCreated) {
+        onAccountCreated(); // 🔹 Rafraîchit la liste des comptes dans Accounts.jsx
+      }
     } catch (error) {
       console.error("Erreur lors de la création du compte :", error);
       toast.error("Une erreur est survenue.");

@@ -67,7 +67,7 @@ export default function Accounts() {
             <h1 className="text-2xl font-bold">Mes comptes</h1>
             <h2 className="text-xl">Total des actifs : {total} €</h2>
           </div>
-          <AddAccount />
+          <AddAccount onAccountCreated={fetchAccounts} />
         </div>
       </div>
       <div className="flex flex-wrap gap-4">
