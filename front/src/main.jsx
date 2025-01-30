@@ -17,7 +17,7 @@ createRoot(document.getElementById("root")).render(
       <Routes>
         <Route path="/" element={<Register />} />
         <Route path="/account" element={<Accounts />} />
-        <Route path="/compte/:iban" element={<ListTransaction />} />
+        <Route path="/compte/:iban/:param" element={<ListTransaction />} />
         <Route path="/login" element={<Login />} />
         <Route path="/addAccount" element={<AddAccount />} />
         <Route path="/user" element={<UpdatePassword />} />
