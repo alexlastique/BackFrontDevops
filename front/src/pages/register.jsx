@@ -20,7 +20,6 @@ export default function Register() {
         return;
       }
 
-
       try {
 
         const resp = await axiosPost("/register", {
@@ -28,15 +27,12 @@ export default function Register() {
           mdp: values.password,
         });
 
-        console.log(resp);
-
         if (!resp || typeof resp !== "object") {
           toastError("Réponse invalide du serveur");
           return;
         }
 
         if (resp.error) {
-          // Le serveur a retourné une erreur
           toastError(resp.error);
           return;
         }
