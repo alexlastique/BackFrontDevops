@@ -102,7 +102,7 @@ def create_compte(account: Account_add, session = Depends(get_session), user=Dep
     if account.name == "ComptePrincipal":
         return {"message": "Nom de compte invalide"}
     iban = f"FR{hashlib.sha256(str((datetime.now() + timedelta(days=365)).strftime('%Y%m%d%H%M%S') + account.name).encode()).hexdigest()[:20]}"
-    compte = Compte(nom=account.name , iban=iban , userId=user["id"])
+    compte = Compte(nom=account.name , iban=iban , userId=user["id"], accountType=account.accountType)
     session.add(compte)
     session.commit()
     session.refresh(compte)
