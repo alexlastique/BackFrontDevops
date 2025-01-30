@@ -14,7 +14,7 @@ export default function AddAccount() {
         { name: values.name, accountType: values.type },
         {
           headers: {
-            Authorization: Bearer ${localStorage.getItem("token")},
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
