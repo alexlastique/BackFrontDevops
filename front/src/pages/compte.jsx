@@ -76,7 +76,6 @@ export default function PrintTransation() {
                 </div>
                 <div className="mt-6">
                     <input type="text" placeholder="Search by label" className="border p-2 rounded mt-4 ml-2" value={searchLabel} onChange={(e) => setSearchLabel(e.target.value)} />
-                    <button onClick={() => fetchTransactions(param)} className="bg-blue-500 text-white p-2 rounded mt-4 ml-2">Search</button>
                     {transactions.length > 0 ? (
                         transactions.map((transaction, index) => (
                             <GetTransation key={index} data={transaction} iban={selectedIban} />
