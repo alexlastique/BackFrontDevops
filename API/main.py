@@ -338,9 +338,9 @@ async def get_transactions_user(user = Depends(get_user), session=Depends(get_se
 
 @app.get("/transactionsUserFilter/{param}")
 async def get_transactions_user_filter(param: str,user = Depends(get_user), session=Depends(get_session)):
-    if (param == "dépenses"):
+    if (param == "Dépenses"):
         query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(Transaction.compte_sender_id.in_([c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()])).order_by(Transaction.date.desc())
-    elif (param == "revenus"):
+    elif (param == "Revenue"):
         query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(Transaction.compte_receiver_id.in_([c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()])).order_by(Transaction.date.desc())
     else:
         query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(or_(Transaction.compte_sender_id.in_([c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()]), Transaction.compte_receiver_id.in_([c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()]))).order_by(Transaction.date.desc())
@@ -358,9 +358,9 @@ async def get_transactions_user_filter(param: str,user = Depends(get_user), sess
 
 @app.get("/transactionsFilter/{compte_iban}/{param}")
 async def get_transactions_filter(compte_iban: str, param: str, session=Depends(get_session)):
-    if (param == "dépenses"):
+    if (param == "Dépenses"):
         query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(Transaction.compte_sender_id == compte_iban).order_by(Transaction.date.desc())
-    elif (param == "revenus"):
+    elif (param == "Revenue"):
         query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(Transaction.compte_receiver_id == compte_iban).order_by(Transaction.date.desc())
     else:
         query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(or_(Transaction.compte_sender_id == compte_iban, Transaction.compte_receiver_id == compte_iban)).order_by(Transaction.date.desc())
