@@ -47,7 +47,7 @@ export default function Accounts() {
   }, [accounts]);
 
   return (
-    <>
+    <div className="w-full">
       <ToastContainer
         position="top-right"
         autoClose={5000}
@@ -70,7 +70,7 @@ export default function Accounts() {
           <AddAccount onAccountCreated={fetchAccounts} />
         </div>
       </div>
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 p-4">
         {accounts.map((account) => (
           <Account key={account.id} account={account} className="w-1/3" onSendMessage={ deleteAccountPopUp } />
         ))}
@@ -78,6 +78,6 @@ export default function Accounts() {
       {deletePopUp && (
         <DeleteAccount iban={ deleteAccountIban } onCancel={ cancelDeleteAccount } />
       )}
-    </>
+    </div>
   );
 }
