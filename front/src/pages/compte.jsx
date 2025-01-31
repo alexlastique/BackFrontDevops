@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { toastError, axiosGet } from "../utils/function";
 import axiosInstance from "../axiosConfig";
 import GetTransation from "../components/getTransation";
+import DownloadFileBuilding  from "../components/boutonTele";
 
 const groupTransactionsByMonth = (transactions) => {
     return transactions.reduce((groups, transaction) => {
@@ -43,6 +44,9 @@ export default function PrintTransation() {
     const [accounts, setAccounts] = useState([]);
     const [selectedIban, setSelectedIban] = useState(iban || "all");
     const [searchLabel, setSearchLabel] = useState("");
+    const [solde, setSolde] = useState(0);
+    const [soldeAttente, setSoldeAttente] = useState(0);
+    const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 
     const fetchTransactions = async (filter) => {
         try {
@@ -62,6 +66,7 @@ export default function PrintTransation() {
             const params = {};
             const resp = await axiosGet(endpoint, { params });
             setTransactions(resp);
+            setSoldeAttente(resp.filter(transaction => transaction.state === "En attente").reduce((total, transaction) => total + transaction.montant, 0));
         } catch (error) {
             toastError("Error fetching transactions");
         }
@@ -72,6 +77,11 @@ export default function PrintTransation() {
             axiosInstance.defaults.headers.common["Authorization"] = "Bearer " + localStorage.getItem("token");
             const resp = await axiosGet('/comptes');
             setAccounts(resp);
+            if (iban === "all") {
+                setSolde(resp.reduce((total, account) => total + account.solde, 0));
+            } else {
+                setSolde(resp.filter(account => account.iban === iban).reduce((total, account) => total + account.solde, 0));
+            }
         } catch (error) {
             toastError("Error fetching accounts");
         }
@@ -84,9 +94,14 @@ export default function PrintTransation() {
     useEffect(() => {
         const filter = param === "Dépenses" || param === "Revenue" ? param : "all";
         fetchTransactions(filter);
+        if (selectedIban === "all") {
+            setSolde(accounts.reduce((total, account) => total + account.solde, 0));
+        } else {
+            setSolde(accounts.filter(account => account.iban === selectedIban).reduce((total, account) => total + account.solde, 0));
+        }
     }, [selectedIban, param, searchLabel]);
 
-    const solde = accounts.reduce((total, account) => total + account.solde, 0);
+
     return (
         <div className="p-4 bg-gray-100 min-h-screen">
             <div className="bg-white p-6 rounded-lg shadow-md">
@@ -98,19 +113,22 @@ export default function PrintTransation() {
                     ))}
                 </select>
                 <p>{solde} €</p>
-                <div className="flex gap-2 mt-4">
-                    <button className="bg-blue-500 text-white px-4 py-2 rounded">
-                        <a href={`/compte/${selectedIban}/all`}>Transactions</a>
-                    </button>
-                    <button className="bg-green-500 text-white px-4 py-2 rounded">
-                        <a href={`/compte/${selectedIban}/Revenue`}>Revenus</a>
-                    </button>
-                    <button className="bg-red-500 text-white px-4 py-2 rounded">
-                        <a href={`/compte/${selectedIban}/Dépenses`}>Dépenses</a>
-                    </button>
-                </div>
+                <p>En attente : {soldeAttente} €</p>
                 <div className="mt-6">
-                    <input type="text" placeholder="Search by label" className="border p-2 rounded mt-4 ml-2" value={searchLabel} onChange={(e) => setSearchLabel(e.target.value)} />
+                    <input type="text" placeholder="Search by label" className="border p-2 rounded mt-4 ml-2" value={searchLabel} onChange={(e) => setSearchLabel(e.target.value)} /> <br />
+                    <input type="month" name="month" id="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}/>
+                    <DownloadFileBuilding   periode={selectedMonth} transactions={transactions} />
+                    <div className="flex gap-2 mt-4">
+                        <button className="bg-blue-500 text-white px-4 py-2 rounded">
+                            <a href={`/compte/${selectedIban}/all`}>Transactions</a>
+                        </button>
+                        <button className="bg-green-500 text-white px-4 py-2 rounded">
+                            <a href={`/compte/${selectedIban}/Revenue`}>Revenus</a>
+                        </button>
+                        <button className="bg-red-500 text-white px-4 py-2 rounded">
+                            <a href={`/compte/${selectedIban}/Dépenses`}>Dépenses</a>
+                        </button>
+                    </div>
                     <Compte transactions={transactions} selectedIban={selectedIban} />
                 </div>
             </div>
