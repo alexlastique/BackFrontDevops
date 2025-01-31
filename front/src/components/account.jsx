@@ -6,7 +6,7 @@ export default function Account({ account, onSendMessage }) {
     const navigate = useNavigate();
 
     const goToTransaction = () => {
-        navigate(`/transaction/${account.id}`);
+        navigate(`/compte/${account.iban}/all`);
     };
 
 
