@@ -6,12 +6,12 @@ export default function Account({ account, onSendMessage }) {
     const navigate = useNavigate();
 
     const goToTransaction = () => {
-        navigate(`/transaction/${account.id}`);
+        navigate(`/compte/${account.iban}/all`);
     };
 
 
     return (
-        <div className="p-4 border rounded-lg shadow-md bg-white max-w-md w-1/3">
+        <div className="p-4 border rounded-lg shadow-md bg-white max-w-md w-1/4">
             <div className="flex justify-between items-center mb-2">
                 <p className="text-lg font-semibold cursor-pointer" onClick={ goToTransaction }>{account.nom}</p>
                 <svg onClick={ ()=> onSendMessage(account.iban) }

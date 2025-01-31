@@ -3,6 +3,7 @@ from datetime import datetime, time, timedelta
 import hashlib, jwt
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import Session, create_engine, SQLModel, Field, select, or_, join
+from sqlalchemy.orm import aliased
 from pydantic import BaseModel
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pathlib import Path
@@ -347,11 +348,126 @@ async def get_compte(iban: str, user=Depends(get_user), session=Depends(get_sess
         "transactions_historique": transactions_historique
         }
 
+@app.get("/transactionsUser")
+async def get_transactions_user(user = Depends(get_user), session=Depends(get_session)):
+    query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(or_(Transaction.compte_sender_id.in_([c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()]), Transaction.compte_receiver_id.in_([c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()]))).order_by(Transaction.date.desc())
+    transactions = session.exec(query).all()
+    print(transactions)
+    transactions = [{
+        "compte_sender_id": transaction.compte_sender_id,
+        "compte_receiver_id": transaction.compte_receiver_id,
+        "montant": transaction.montant,
+        "date": transaction.date,
+        "state": transaction.state
+    } for transaction in transactions]
+
+    return transactions
+
+@app.get("/transactionsUserFilter/{param}")
+async def get_transactions_user_filter(param: str,user = Depends(get_user), session=Depends(get_session)):
+    if (param == "Dépenses"):
+        query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(Transaction.compte_sender_id.in_([c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()])).order_by(Transaction.date.desc())
+    elif (param == "Revenue"):
+        query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(Transaction.compte_receiver_id.in_([c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()])).order_by(Transaction.date.desc())
+    else:
+        query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(or_(Transaction.compte_sender_id.in_([c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()]), Transaction.compte_receiver_id.in_([c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()]))).order_by(Transaction.date.desc())
+    transactions = session.exec(query).all()
+    print(transactions)
+    transactions = [{
+        "compte_sender_id": transaction.compte_sender_id,
+        "compte_receiver_id": transaction.compte_receiver_id,
+        "montant": transaction.montant,
+        "date": transaction.date,
+        "state": transaction.state
+    } for transaction in transactions]
+
+    return transactions
+
+@app.get("/transactionsFilter/{compte_iban}/{param}")
+async def get_transactions_filter(compte_iban: str, param: str, session=Depends(get_session)):
+    if (param == "Dépenses"):
+        query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(Transaction.compte_sender_id == compte_iban).order_by(Transaction.date.desc())
+    elif (param == "Revenue"):
+        query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(Transaction.compte_receiver_id == compte_iban).order_by(Transaction.date.desc())
+    else:
+        query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(or_(Transaction.compte_sender_id == compte_iban, Transaction.compte_receiver_id == compte_iban)).order_by(Transaction.date.desc())
+
+    transactions = session.exec(query).all()
+    transactions = [{
+        "compte_sender_id": transaction.compte_sender_id,
+        "compte_receiver_id": transaction.compte_receiver_id,
+        "montant": transaction.montant,
+        "date": transaction.date,
+        "state": transaction.state
+    } for transaction in transactions]
+
+    return transactions
+
+@app.get("/transactionsUserFilterLabel/{param}/{label}")
+async def get_transactions_user_filter_label(param: str, label: str, user=Depends(get_user), session=Depends(get_session)):
+    filters = []
+    comptes = [c for c in session.exec(select(Compte.iban).where(Compte.userId == user["id"])).all()]
+    
+    if param == "Dépenses":
+        filters.append(Transaction.compte_sender_id.in_(comptes))
+    elif param == "Revenue":
+        filters.append(Transaction.compte_receiver_id.in_(comptes))
+    else:
+        filters.append(or_(Transaction.compte_sender_id.in_(comptes), Transaction.compte_receiver_id.in_(comptes)))
+    
+    if label:
+        # filters.append(or_(Transaction.label == label, Transaction.montant == label))
+        filters.append(Transaction.montant == label)
+    
+    query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(*filters).order_by(Transaction.date.desc())
+    transactions = session.exec(query).all()
+    
+    return [{
+        "compte_sender_id": transaction.compte_sender_id,
+        "compte_receiver_id": transaction.compte_receiver_id,
+        "montant": transaction.montant,
+        "date": transaction.date,
+        "state": transaction.state
+    } for transaction in transactions]
+
+@app.get("/transactionsFilterLabel/{compte_iban}/{param}/{label}")
+async def get_transactions_filter_label(compte_iban: str, param: str, label: str, session=Depends(get_session)):
+    filters = []
+    
+    if param == "Dépenses":
+        filters.append(Transaction.compte_sender_id == compte_iban)
+    elif param == "Revenue":
+        filters.append(Transaction.compte_receiver_id == compte_iban)
+    else:
+        filters.append(or_(Transaction.compte_sender_id == compte_iban, Transaction.compte_receiver_id == compte_iban))
+    
+    if label:
+        # filters.append(or_(Transaction.label == label, Transaction.montant == label))
+        filters.append(Transaction.montant == label)
+    
+    query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(*filters).order_by(Transaction.date.desc())
+    transactions = session.exec(query).all()
+    
+    return [{
+        "compte_sender_id": transaction.compte_sender_id,
+        "compte_receiver_id": transaction.compte_receiver_id,
+        "montant": transaction.montant,
+        "date": transaction.date,
+        "state": transaction.state
+    } for transaction in transactions]
+
 @app.get("/transactions/{compte_iban}")
 async def get_transactions(compte_iban: str, session=Depends(get_session)):
     query = select(Transaction.compte_sender_id, Transaction.compte_receiver_id, Transaction.montant, Transaction.date, Transaction.state).where(or_(Transaction.compte_sender_id == compte_iban, Transaction.compte_receiver_id == compte_iban)).order_by(Transaction.date.desc())
     transactions = session.exec(query).all()
-    transactions = [tuple(row) for row in transactions]
+    transactions = [{
+        "compte_sender_id": transaction.compte_sender_id,
+        "compte_receiver_id": transaction.compte_receiver_id,
+        "montant": transaction.montant,
+        "date": transaction.date,
+        "state": transaction.state
+    } for transaction in transactions]
+    
     return transactions
 
 @app.get("/transaction/{compte_id}")
@@ -366,6 +482,50 @@ async def get_transaction(compte_id: int, user=Depends(get_user), session=Depend
     if user["id"] not in user_id:
         raise HTTPException(status_code=403, detail="Accès refusé")
     return transactions
+
+@app.post("/transaction_all/")
+async def get_transaction(user=Depends(get_user), session=Depends(get_session)):
+    query = (
+        select(Transaction)
+        .join(Compte, or_(Compte.iban == Transaction.compte_sender_id, Compte.iban == Transaction.compte_receiver_id))
+        .where(Compte.userId == user["id"], Compte.status == True, Transaction.date > datetime.now() - timedelta(hours=24))
+    )
+    transactions = session.exec(query).all()
+    
+    response = []
+    transaction_ids = set()  # Ensemble pour stocker les IDs des transactions déjà ajoutées
+
+    for transaction in transactions:
+        if transaction.id not in transaction_ids:  # Vérifiez si l'ID de la transaction est déjà dans l'ensemble
+            transaction_ids.add(transaction.id)  # Ajoutez l'ID de la transaction à l'ensemble
+            query = select(Compte).where(Compte.userId == user["id"], Compte.status == True, or_(Compte.iban == transaction.compte_sender_id, Compte.iban == transaction.compte_receiver_id))
+            resp = session.exec(query).first()
+            response.append({"nom": resp.nom, "iban": resp.iban, "transactions": transaction})
+
+    return response
+
+
+@app.get("/transaction_one/{iban}")
+async def get_transaction(iban: str, user=Depends(get_user), session=Depends(get_session)):
+    query = (
+        select(Transaction)
+        .join(Compte, or_(Compte.iban == Transaction.compte_sender_id, Compte.iban == Transaction.compte_receiver_id))
+        .where(Compte.iban == iban ,Compte.userId == user["id"], Compte.status == True, Transaction.date > datetime.now() - timedelta(hours=24))
+    )
+    transactions = session.exec(query).all()
+    
+    response = []
+    transaction_ids = set()  # Ensemble pour stocker les IDs des transactions déjà ajoutées
+
+    for transaction in transactions:
+        if transaction.id not in transaction_ids:  # Vérifiez si l'ID de la transaction est déjà dans l'ensemble
+            transaction_ids.add(transaction.id)  # Ajoutez l'ID de la transaction à l'ensemble
+            query = select(Compte).where(Compte.userId == user["id"], Compte.status == True, or_(Compte.iban == transaction.compte_sender_id, Compte.iban == transaction.compte_receiver_id))
+            resp = session.exec(query).first()
+            response.append({"nom": resp.nom, "iban": resp.iban, "transactions": transaction})
+
+    return response
+
 
 @app.post("/beneficiary_add/")
 def create_beneficiary(beneficiary_add: Beneficiary_add, session = Depends(get_session), user=Depends(get_user)):

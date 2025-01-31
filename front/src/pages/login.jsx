@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function Login() {
     const navigate = useNavigate();
+
     const formik = useFormik({
         initialValues: {
             email: "",
@@ -23,7 +24,6 @@ export default function Login() {
                     mdp: values.password,
                 });
 
-                console.log(resp);
 
                 if (!resp || typeof resp !== "object") {
                     toastError("Réponse invalide du serveur");
