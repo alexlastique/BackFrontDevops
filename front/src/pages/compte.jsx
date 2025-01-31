@@ -4,6 +4,39 @@ import { toastError, axiosGet } from "../utils/function";
 import axiosInstance from "../axiosConfig";
 import GetTransation from "../components/getTransation";
 
+const groupTransactionsByMonth = (transactions) => {
+    return transactions.reduce((groups, transaction) => {
+        const date = new Date(transaction.date);
+        const month = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+        if (!groups[month]) {
+            groups[month] = [];
+        }
+        groups[month].push(transaction);
+        return groups;
+    }, {});
+};
+
+const Compte = ({ transactions, selectedIban }) => {
+    const groupedTransactions = groupTransactionsByMonth(transactions);
+
+    return (
+        <div>
+            {Object.keys(groupedTransactions).length > 0 ? (
+                Object.keys(groupedTransactions).map((month) => (
+                    <div key={month}>
+                        <h3 className="text-lg font-bold">{month}</h3>
+                        {groupedTransactions[month].map((transaction, index) => (
+                            <GetTransation key={index} data={transaction} iban={selectedIban} />
+                        ))}
+                    </div>
+                ))
+            ) : (
+                <p className="text-gray-500">Aucune transaction trouvée</p>
+            )}
+        </div>
+    );
+};
+
 export default function PrintTransation() {
     const { iban, param } = useParams();
     const [transactions, setTransactions] = useState([]);
@@ -53,6 +86,7 @@ export default function PrintTransation() {
         fetchTransactions(filter);
     }, [selectedIban, param, searchLabel]);
 
+    const solde = accounts.reduce((total, account) => total + account.solde, 0);
     return (
         <div className="p-4 bg-gray-100 min-h-screen">
             <div className="bg-white p-6 rounded-lg shadow-md">
@@ -63,6 +97,7 @@ export default function PrintTransation() {
                         <option key={index} value={account.iban}>{account.iban}</option>
                     ))}
                 </select>
+                <p>{solde} €</p>
                 <div className="flex gap-2 mt-4">
                     <button className="bg-blue-500 text-white px-4 py-2 rounded">
                         <a href={`/compte/${selectedIban}/all`}>Transactions</a>
@@ -76,13 +111,7 @@ export default function PrintTransation() {
                 </div>
                 <div className="mt-6">
                     <input type="text" placeholder="Search by label" className="border p-2 rounded mt-4 ml-2" value={searchLabel} onChange={(e) => setSearchLabel(e.target.value)} />
-                    {transactions.length > 0 ? (
-                        transactions.map((transaction, index) => (
-                            <GetTransation key={index} data={transaction} iban={selectedIban} />
-                        ))
-                    ) : (
-                        <p className="text-gray-500">Aucune transaction trouvée</p>
-                    )}
+                    <Compte transactions={transactions} selectedIban={selectedIban} />
                 </div>
             </div>
         </div>
