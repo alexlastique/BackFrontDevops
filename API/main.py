@@ -348,12 +348,16 @@ async def get_transaction(user=Depends(get_user), session=Depends(get_session)):
         .where(Compte.userId == user["id"], Compte.status == True, Transaction.date > datetime.now() - timedelta(hours=24))
     )
     transactions = session.exec(query).all()
-    response = []
-    for transaction in transactions:
-        query = select(Compte).where(Compte.userId == user["id"], Compte.status == True, or_(Compte.iban == transaction.compte_sender_id, Compte.iban == transaction.compte_receiver_id))
-        resp = session.exec(query).first()
-        response.append({"nom": resp.nom, "iban": resp.iban, "transactions": transaction})
     
+    response = []
+    transaction_ids = set()  # Ensemble pour stocker les IDs des transactions déjà ajoutées
+
+    for transaction in transactions:
+        if transaction.id not in transaction_ids:  # Vérifiez si l'ID de la transaction est déjà dans l'ensemble
+            transaction_ids.add(transaction.id)  # Ajoutez l'ID de la transaction à l'ensemble
+            query = select(Compte).where(Compte.userId == user["id"], Compte.status == True, or_(Compte.iban == transaction.compte_sender_id, Compte.iban == transaction.compte_receiver_id))
+            resp = session.exec(query).first()
+            response.append({"nom": resp.nom, "iban": resp.iban, "transactions": transaction})
 
     return response
 

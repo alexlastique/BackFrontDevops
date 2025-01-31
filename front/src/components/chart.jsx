@@ -10,6 +10,7 @@ export default function Chart({name, data}) {
             line: {
                 tension: 0, // Désactiver la courbure des lignes
                 borderWidth: 5, // Enlever les lignes
+                borderColor: 'lightgray',
             },
             point: {
                 radius: 1, // Taille des points
