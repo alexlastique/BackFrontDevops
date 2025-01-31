@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from 'react-router-dom';
 import { toastError, axiosGet } from "../utils/function";
-import GetTransation from "../components/getTransation";
+import GetTransaction from "../components/getTransaction";
 import axiosInstance from "../axiosConfig";
 
-export default function PrintTransation() {
+export default function PrintTransaction() {
     const { iban } = useParams();
     const [transactions, setTransactions] = useState([]);
 
@@ -27,7 +27,7 @@ export default function PrintTransation() {
             <h2>Transactions for user: {iban}</h2>
             {transactions.length > 0 ? (
                 transactions.map((transaction, index) => (
-                    <GetTransation key={index} data={transaction} iban={iban} />
+                    <GetTransaction key={index} data={transaction} iban={iban} />
                 ))
             ) : (
                 <p>No transactions found</p>

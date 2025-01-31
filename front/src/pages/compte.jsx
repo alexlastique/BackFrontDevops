@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { toastError, axiosGet } from "../utils/function";
 import axiosInstance from "../axiosConfig";
-import GetTransation from "../components/getTransation";
+import GetTransaction from "../components/getTransaction";
 import DownloadFileBuilding  from "../components/boutonTele";
 
 const groupTransactionsByMonth = (transactions) => {
@@ -27,7 +27,7 @@ const Compte = ({ transactions, selectedIban }) => {
                     <div key={month}>
                         <h3 className="text-lg font-bold">{month}</h3>
                         {groupedTransactions[month].map((transaction, index) => (
-                            <GetTransation key={index} data={transaction} iban={selectedIban} />
+                            <GetTransaction key={index} data={transaction} iban={selectedIban} />
                         ))}
                     </div>
                 ))
@@ -38,7 +38,7 @@ const Compte = ({ transactions, selectedIban }) => {
     );
 };
 
-export default function PrintTransation() {
+export default function PrintTransaction() {
     const { iban, param } = useParams();
     const [transactions, setTransactions] = useState([]);
     const [accounts, setAccounts] = useState([]);
