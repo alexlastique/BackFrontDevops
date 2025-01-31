@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { toastError, axiosGet } from "../utils/function";
 import axiosInstance from "../axiosConfig";
 import GetTransaction from "../components/getTransaction";
-import DownloadFileBuilding  from "../components/boutonTele";
+import DownloadFileBuilding  from "../components/DownloadFileBuilding";
 
 const groupTransactionsByMonth = (transactions) => {
     return transactions.reduce((groups, transaction) => {

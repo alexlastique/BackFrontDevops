@@ -13,7 +13,7 @@ const DownloadFileBuilding = ({ periode, transactions }) => {
   const [filteredTransactions, setFilteredTransactions] = useState([]);
 
   const filterTransactionsByPeriod = (periode) => {
-    if (!periode || periode.length !== 6) {
+    if (!periode || periode.length !== 7) {
       console.log("🚨 Période invalide");
       return [];
     }
@@ -22,9 +22,9 @@ const DownloadFileBuilding = ({ periode, transactions }) => {
       return [];
     }
 
-    const month = parseInt(periode.substring(0, 2), 10);
-    const year = parseInt(periode.substring(2), 10);
-
+    const year = parseInt(periode.substring(0, 4), 10);
+    const month = parseInt(periode.substring(5), 10);
+    console.log(month + " " + year);
     if (isNaN(month) || isNaN(year)) {
       console.log("🚨 La période est invalide (mois ou année incorrects)");
       return [];
@@ -56,16 +56,8 @@ const DownloadFileBuilding = ({ periode, transactions }) => {
     setFilteredTransactions(filterTransactionsByPeriod(periode));
   }, [periode, transactions]);
 
-  const handleFilterUpdate = (periode) => {
-    console.log("📅 Filtre mis à jour avec la période :", periode);
-    const newFilteredTransactions = filterTransactionsByPeriod(periode);
-    setFilteredTransactions(newFilteredTransactions);
-  };
-
   return (
     <div>
-      <h2>Téléchargement du relevé</h2>
-      <TransactionFilter onFilterUpdate={handleFilterUpdate} />
       <DownloadButton periode={periode} transactions={filteredTransactions} />
     </div>
   );
