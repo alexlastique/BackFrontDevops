@@ -9,6 +9,7 @@ import AddAccount from './components/addAccount'
 import UpdatePassword from './pages/user'
 import ListTransaction from './pages/compte'
 import NavBar from './components/navbar'
+import Download from './pages/download'
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -21,7 +22,8 @@ createRoot(document.getElementById("root")).render(
         <Route path="/login" element={<Login />} />
         <Route path="/addAccount" element={<AddAccount />} />
         <Route path="/user" element={<UpdatePassword />} />
+        <Route path="/download" element={<Download />} />
       </Routes>
     </Router>
-  </StrictMode>,
-)
+  </StrictMode>
+);
