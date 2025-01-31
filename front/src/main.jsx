@@ -7,6 +7,7 @@ import Accounts from './pages/accounts'
 import Login from './pages/login'
 import AddAccount from './components/addAccount'
 import UpdatePassword from './pages/user'
+import Transfer from './pages/transfer'
 import ListTransaction from './pages/compte'
 import NavBar from './components/navbar'
 import Dashboard from './pages/dashboard'
@@ -22,6 +23,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/login" element={<Login />} />
         <Route path="/addAccount" element={<AddAccount />} />
         <Route path="/user" element={<UpdatePassword />} />
+        <Route path="/transfer" element={<Transfer />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </Router>

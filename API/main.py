@@ -228,32 +228,59 @@ async def deposit(deposit: Deposit, session=Depends(get_session), user=Depends(g
 
 @app.post("/send_money")
 async def send_money(sendmoney: SendMoney, user=Depends(get_user), session=Depends(get_session)):
-    query = select(Compte.iban).where(Compte.status == True)
-    listIban = session.exec(query).all()
-    if sendmoney.iban_dest not in listIban:
-        return {"message": "Le compte cible est inaccessible"}
-    query = select(Compte.iban).where(Compte.userId == user["id"], Compte.status == True)
-    listIban = session.exec(query).all()
-    if sendmoney.iban_orig not in listIban:
-        return {"message": "Ceci n'est pas votre compte"}
-    query = select(Compte).where(Compte.iban == sendmoney.iban_orig)
-    compte = session.exec(query).first()
-    if sendmoney.amount<=0:
+    print(f"Dest IBAN reçu : {sendmoney.iban_dest}")
+
+    dest_query = select(Compte).where(
+        Compte.iban == sendmoney.iban_dest, 
+        Compte.status == True
+    )
+    dest_account = session.exec(dest_query).first()
+    
+    if not dest_account:
+        print(f"Compte {sendmoney.iban_dest} non trouvé")
+        return {"message": "Compte cible introuvable ou clôturé"} 
+
+    src_query = select(Compte).where(
+        Compte.iban == sendmoney.iban_orig,
+        Compte.userId == user["id"],
+        Compte.status == True
+    )
+    src_account = session.exec(src_query).first()
+
+    if not src_account:
+        return {"message": "Compte source invalide ou non autorisé"}
+
+    if sendmoney.amount <= 0:
         return {"message": "Le montant doit être supérieur à zéro"}
-    if sendmoney.iban_dest==compte.iban:
-        return {"message": "Vous ne pouvez pas transférer de l'argent à votre propre compte"}
-    if sendmoney.amount>compte.solde:
-        return {"message": "Le montant transféré dépasse le solde du compte"}
-    compte.solde -= sendmoney.amount
-    session.commit()
-    session.refresh(compte)
+        
+    if sendmoney.iban_dest == src_account.iban:
+        return {"message": "Interdit d'envoyer à soi-même"}
+        
+    if sendmoney.amount > src_account.solde:
+        return {"message": f"Solde insuffisant (actuel: {src_account.solde}€)"}
 
-    transaction = Transaction(compte_sender_id=compte.iban, compte_receiver_id=sendmoney.iban_dest, montant=sendmoney.amount)
-    session.add(transaction)
-    session.commit()
-    session.refresh(transaction)
-
-    return {"message": f"Transfert de {sendmoney.amount} euros vers {sendmoney.iban_dest} réussi. Il vous reste {compte.solde}."}
+    try:
+        src_account.solde -= sendmoney.amount
+        dest_account.solde += sendmoney.amount
+        
+        transaction = Transaction(
+            compte_sender_id=src_account.iban,
+            compte_receiver_id=dest_account.iban,
+            montant=sendmoney.amount
+        )
+        
+        session.add_all([src_account, dest_account, transaction])
+        session.commit()
+        
+        return {
+        "message": f"Transfert réussi ➔ {dest_account.nom}",
+        "transaction_id": transaction.id,
+        "timestamp": transaction.date.timestamp()
+    }
+    
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=f"Erreur transaction: {str(e)}")
 
 @app.post("/cancel_transaction")
 async def cancel_transaction(cancel: Cancel, session=Depends(get_session), user=Depends(get_user)):
