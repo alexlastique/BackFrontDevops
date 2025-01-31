@@ -13,8 +13,14 @@ const DownloadButton = ({ periode, transactions }) => {
     } else {
       autoTable(doc, {
         startY: 30,
-        head: [["Date", "Montant (€)", "État"]],
-        body: transactions.map((t) => [t.date, t.montant.toFixed(2), t.etat]),
+        head: [["Expediteur", "Recepteur", "Date", "Montant (€)", "État"]],
+        body: transactions.map((t) => [
+          t.compte_sender_id == 0 ? "Depot" : t.compte_sender_id,
+          t.compte_receiver_id,
+          t.date,
+          t.montant.toFixed(2),
+          t.state,
+        ]),
       });
     }
 
