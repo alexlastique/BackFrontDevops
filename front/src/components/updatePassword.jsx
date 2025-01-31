@@ -31,7 +31,6 @@ export default function UpdatePassword() {
           currentPassword: values.currentPassword,
           new_password: values.newPassword,
         });
-        console.log(resp);
         if (resp.message == "Mot de passe incorrect") {
           toastError("Mot de passe incorrect");
         } else {
