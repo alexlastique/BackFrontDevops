@@ -36,7 +36,7 @@ const BigChart = ({ name, data, options, type }) => {
                 borderWidth: 5, // Enlever les lignes
             },
             point: {
-                radius: 1, // Taille des points
+                radius: 5, // Taille des points
             },
         },
         scales: {

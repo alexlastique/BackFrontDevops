@@ -13,7 +13,7 @@ export default function Chart({name, data}) {
                 borderColor: 'lightgray',
             },
             point: {
-                radius: 1, // Taille des points
+                radius: 5, // Taille des points
             },
         },
         scales: {
