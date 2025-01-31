@@ -7,6 +7,7 @@ import Accounts from './pages/accounts'
 import Login from './pages/login'
 import AddAccount from './components/addAccount';
 import UpdatePassword from './pages/user'
+import Transfer from './pages/transfer'
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -17,6 +18,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/login" element={<Login />} />
         <Route path="/addAccount" element={<AddAccount />} />
         <Route path="/user" element={<UpdatePassword />} />
+        <Route path="/transfer" element={<Transfer />} />
       </Routes>
     </Router>
   </StrictMode>,

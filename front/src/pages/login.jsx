@@ -2,8 +2,10 @@ import React from "react";
 import { useFormik } from "formik";
 import { ToastContainer, Bounce } from "react-toastify";
 import { toastError, axiosPost, toastValidate } from "../utils/function";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
+    const navigate = useNavigate();
     const formik = useFormik({
         initialValues: {
             email: "",
@@ -29,12 +31,12 @@ export default function Login() {
                 }
 
                 if (resp.error) {
-                    // Le serveur a retourné une erreur
                     toastError(resp.error);
                     return;
                 }
 
                 localStorage.setItem("token", resp.token);
+                navigate("/transfer");
             } catch (error) {
                 console.error("❌ Erreur Axios:", error);
                 toastError("Erreur de connexion au serveur");
