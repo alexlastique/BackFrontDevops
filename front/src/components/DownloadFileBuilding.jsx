@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import TransactionFilter from "./TransactionFilter";
+import TransactionFilter from "./transactionFilter";
 import DownloadButton from "./downloadButton";
 
 const DownloadFileBuilding = ({ periode, transactions }) => {

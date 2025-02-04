@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { axiosGet } from "../utils/function";
 import axiosInstance from "../axiosConfig";
-import AddBeneficiary from "../components/AddBeneficiary";
+import AddBeneficiary from "../components/addBeneficiary";
 import TransferFormModal from "../components/transferFormModal";
-import BeneficiaryCard from "../components/BeneficiaryCard";
+import BeneficiaryCard from "../components/beneficiaryCard";
 import AccountCard from "../components/accountCard";
 
 export default function Transfer() {

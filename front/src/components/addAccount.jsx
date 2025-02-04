@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import Button from "./Button";
-import AccountForm from "./AccountForm";
+import Button from "./button";
+import AccountForm from "./accountForm";
 
 export default function AddAccount({ onAccountCreated }) {
   const [isModalOpen, setIsModalOpen] = useState(false);

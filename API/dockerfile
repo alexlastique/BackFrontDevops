@@ -1,0 +1,16 @@
+FROM python:3.12
+
+# Définir le répertoire de travail
+WORKDIR /app
+
+# Installer les dépendances en une seule commande
+RUN pip install --no-cache-dir "fastapi[standard]" sqlmodel pyjwt
+
+# Copier le code source dans le conteneur (si nécessaire)
+COPY . .
+
+# Exposer le port (si vous utilisez FastAPI avec Uvicorn)
+EXPOSE 8000
+
+# Commande par défaut (exemple avec FastAPI)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

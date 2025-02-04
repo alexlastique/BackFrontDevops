@@ -1,8 +1,8 @@
 import React from "react";
 import { useFormik } from "formik";
-import InputField from "./InputField";
-import SelectField from "./SelectField";
-import Button from "./Button";
+import InputField from "./inputField";
+import SelectField from "./selectField";
+import Button from "./button";
 
 const AccountForm = ({ onSubmit, onClose }) => {
   const formik = useFormik({

@@ -25,6 +25,7 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",
     "http://localhost:5173",
+    "http://localhost:7000",
 ]
 
 app.add_middleware(
@@ -37,14 +38,14 @@ app.add_middleware(
 
 logging.basicConfig(level=logging.INFO)
 
-sqlite_file_name = "API/database.db"
+sqlite_file_name = "database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
 connect_args = {"check_same_thread": False}
 engine = create_engine(sqlite_url, connect_args=connect_args)
 
 def create_db_and_tables():
-    database = Path("../API/database.db")
+    database = Path("database.db")
     if not database.is_file():
         SQLModel.metadata.create_all(engine)
 
