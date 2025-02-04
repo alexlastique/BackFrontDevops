@@ -38,14 +38,14 @@ app.add_middleware(
 
 logging.basicConfig(level=logging.INFO)
 
-sqlite_file_name = "database.db"
+sqlite_file_name = "API/database.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
 connect_args = {"check_same_thread": False}
 engine = create_engine(sqlite_url, connect_args=connect_args)
 
 def create_db_and_tables():
-    database = Path("database.db")
+    database = Path("../API/database.db")
     if not database.is_file():
         SQLModel.metadata.create_all(engine)
 
