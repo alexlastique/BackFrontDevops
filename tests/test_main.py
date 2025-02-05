@@ -1,16 +1,16 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app, create_db_and_tables, get_session, generate_token, ChangePasswordRequest
-from user import User
-from compte import Compte
-from transaction import Transaction
-from beneficiary import Beneficiary
-from register import Register
-from deposit import Deposit
-from send_money import SendMoney
-from cancel import Cancel
-from account import Account_add, Account_delete
-from beneficiary_add import Beneficiary_add
+from API.main import app, create_db_and_tables, get_session, generate_token, ChangePasswordRequest
+from API.user import User
+from API.compte import Compte
+from API.transaction import Transaction
+from API.beneficiary import Beneficiary
+from API.register import Register
+from API.deposit import Deposit
+from API.send_money import SendMoney
+from API.cancel import Cancel
+from API.account import Account_add, Account_delete
+from API.beneficiary_add import Beneficiary_add
 
 client = TestClient(app)
 

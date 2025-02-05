@@ -7,17 +7,17 @@ from sqlalchemy.orm import aliased
 from pydantic import BaseModel
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pathlib import Path
-from user import User
-from compte import Compte
-from transaction import Transaction
-from beneficiary import Beneficiary
+from API.user import User
+from API.compte import Compte
+from API.transaction import Transaction
+from API.beneficiary import Beneficiary
 import logging
-from register import Register
-from deposit import Deposit
-from send_money import SendMoney
-from cancel import Cancel
-from account import *
-from beneficiary_add import Beneficiary_add
+from API.register import Register
+from API.deposit import Deposit
+from API.send_money import SendMoney
+from API.cancel import Cancel
+from API.account import *
+from API.beneficiary_add import Beneficiary_add
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
