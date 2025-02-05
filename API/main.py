@@ -485,7 +485,7 @@ async def get_transaction(compte_id: int, user=Depends(get_user), session=Depend
     return transactions
 
 @app.post("/transaction_all/")
-async def get_transaction(user=Depends(get_user), session=Depends(get_session)):
+async def get_all_transaction(user=Depends(get_user), session=Depends(get_session)):
     query = (
         select(Transaction)
         .join(Compte, or_(Compte.iban == Transaction.compte_sender_id, Compte.iban == Transaction.compte_receiver_id))

@@ -1,4 +1,5 @@
 import pytest
+from random import randint
 from fastapi.testclient import TestClient
 from API.main import app, create_db_and_tables, get_session, generate_token, ChangePasswordRequest
 from API.user import User
@@ -14,6 +15,8 @@ from API.beneficiary_add import Beneficiary_add
 
 client = TestClient(app)
 
+nbrRandom = str(randint(-2147483648, 2147483647))
+
 @pytest.fixture(scope="module", autouse=True)
 def setup_database():
     create_db_and_tables()
@@ -23,12 +26,12 @@ def test_create_db_and_tables():
     pass
 
 def test_generate_token():
-    user = User(id=1, email="test@example.com", mdp="hashed_password")
+    user = User(id=1, email="test@example.com", mdp="hashed_p@55word")
     token = generate_token(user)
     assert token is not None
 
 def test_create_compte():
-    account = Account_add(name="TestAccount", accountType="Savings")
+    account = Account_add(name="TestAccount"+nbrRandom, accountType="Savings")
     token = generate_token(User(id=1, email="test@example.com", mdp="hashed_p@55word"))
     headers = {"Authorization": f"Bearer {token}"}
     response = client.post("/account_add/", json=account.model_dump(), headers=headers)
@@ -43,7 +46,7 @@ def test_delete_compte():
     assert response.status_code == 200
 
 def test_register():
-    register_data = Register(email="test5@example.com", mdp="hashed_p@55word")
+    register_data = Register(email=f"test{nbrRandom}@example.com", mdp="hashed_p@55word")
     response = client.post("/register", json=register_data.dict())
     assert response.status_code == 200
     assert "token" in response.json()
@@ -55,21 +58,21 @@ def test_login():
     assert "token" in response.json()
 
 def test_me():
-    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_password"))
+    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_p@55word"))
     headers = {"Authorization": f"Bearer {token}"}
     response = client.get("/me", headers=headers)
     assert response.status_code == 200
 
 def test_deposit():
-    deposit_data = Deposit(amount=100, iban_dest="FR1234567890")
-    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_password"))
+    deposit_data = Deposit(amount=100, iban_dest="FR34e0a96a2f169340cac1")
+    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_p@55word"))
     headers = {"Authorization": f"Bearer {token}"}
     response = client.post("/deposit", json=deposit_data.dict(), headers=headers)
     assert response.status_code == 200
 
 def test_send_money():
-    send_money_data = SendMoney(amount=50, iban_orig="FR1234567890", iban_dest="FR0987654321")
-    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_password"))
+    send_money_data = SendMoney(amount=50, iban_orig="FR34e0a96a2f169340cac1", iban_dest="FR42eb0354033ccba6d16d")
+    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_p@55word"))
     headers = {"Authorization": f"Bearer {token}"}
     response = client.post("/send_money", json=send_money_data.dict(), headers=headers)
     assert response.status_code == 200
@@ -83,20 +86,58 @@ def test_cancel_transaction():
 
 def test_create_beneficiary():
     beneficiary_data = Beneficiary_add(iban="FR0987654321", nom="Beneficiary")
-    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_password"))
+    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_p@55word"))
     headers = {"Authorization": f"Bearer {token}"}
     response = client.post("/beneficiary_add/", json=beneficiary_data.dict(), headers=headers)
     assert response.status_code == 200
 
 def test_read_beneficiaries():
-    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_password"))
+    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_p@55word"))
     headers = {"Authorization": f"Bearer {token}"}
     response = client.get("/beneficiaries/", headers=headers)
     assert response.status_code == 200
 
 def test_change_password():
     change_password_data = ChangePasswordRequest(currentPassword="old_password", new_password="new_password")
-    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_password"))
+    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_p@55word"))
     headers = {"Authorization": f"Bearer {token}"}
     response = client.post("/change_password/", json=change_password_data.dict(), headers=headers)
+    assert response.status_code == 200
+
+def test_me():
+    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_p@55word"))
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/me", headers=headers)
+    assert response.status_code == 200
+
+def test_read_beneficiaries():
+    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_p@55word"))
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/beneficiaries/", headers=headers)
+    assert response.status_code == 200
+
+def test_read_root():
+    response = client.get("/")
+    assert response.status_code == 200
+
+def test_read_users():
+    response = client.get("/users/")
+    assert response.status_code == 200
+
+def test_get_comptes_by_user():
+    token = generate_token(User(id=1, email="test@example.com", mdp="hashed_p@55word"))
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/comptes/", headers=headers)
+    assert response.status_code == 200
+
+def test_get_transactions_user():
+    token = generate_token(User(id=3, email="test3@example.com", mdp="hashed_p@55word"))
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/transactionsUser/", headers=headers)
+    assert response.status_code == 200
+
+def test_get_all_transaction():
+    token = generate_token(User(id=3, email="test3@example.com", mdp="hashed_p@55word"))
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/transaction_all/", headers=headers)
     assert response.status_code == 200
