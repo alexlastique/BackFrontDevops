@@ -11,8 +11,10 @@ export default defineConfig({
   server: {
     port: 8080,
     strictPort: true,
-    host: true,
-    origin: "http://0.0.0.0:8080",
-   },
+    host: '0.0.0.0', // Autoriser l'accès depuis l'extérieur
+    origin: "http://pg2.finder-me.com",
+    allowedHosts: ['pg2.finder-me.com']
+  }
+
   
-})
+}) 
